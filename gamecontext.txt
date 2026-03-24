@@ -1,0 +1,157 @@
+Overall Game
+Essentially you are a crew of old 1600s pirates who are ahead of their time. They have rigged up a vintage diving suit, an air pump, and a winch (raise/lower). You sail across the ocean with a treasure map, anchor over dive sites, and send a diver into the deep to loot everything.
+
+However, you have a quota to meet. The ocean gets darker and deeper as you go, your air is finite, and some things down there are out to get you.
+
+Every player is the same pirate. Nobody is locked into a role. Anyone can put on the diving suit, anyone can man the air pump, anyone can steer the ship. The difficult part is choosing, because if everyone dives, nobody is pumping air, and you’ll all suffocate. When the merchant boat pulls up, sell your haul, buy upgrades, and push deeper.
+Core Gameplay Loop
+The game follows a repeating quota cycle:
+Sail - navigate to a dive site through the treasure map
+Anchor - drop anchor and deploy the winch at the dive site
+Dive - One or more players put on a diving suit and descend
+Support - remaining players manage the air pump, winch, and ship
+Surface - Haul loot back to the ship
+Sell - merchant boat pulls up, where you sell loot and buy upgrades.
+This could also work by selling at islands instead
+Upgrade - spend money on gear and/or ship improvements
+Repeat - until the quota is met or deadline hits
+Quota System
+Each cycle the crew must meet a value (gold?) quota
+Loot has varying gold values, like shells or mini trinkets are cheap, but buried treasure is worth a lot
+A merchant boat pulls alongside your ship at the end of each cycle. Sell look directly from your deck to count toward the quota.
+If you miss the quota, the game ends. No second chances
+After meeting a quota, the next quota is higher, so players must go to deeper or riskier sites
+The merchant also sells gear and ship upgrades, so the sell/buy/next-cycle flow happens in one place
+Difficulty scales, so deeper dives imply better loot and more threats with less lights and a longer cable needed.
+Solo Play
+Playing solo involves the same mechanics. There is no special “solo mode”. You’re one pirate doing everything yourself, such as pumping the air, putting on a dive suit, diving to sites, coming back up when oxygen gets low, pump again, etc. It’s much harder because you can’t do both at once (although there could be an upgrade for this). 
+Player Info
+Each player has the same universal pirate character (maybe different aesthetics, but that's all). There are no specific classes, no role selection screens, and no locked abilities. The role division would come from player choice and the natural consequences of those choices.
+
+Player Controller
+First-person pirate who can move freely on the ship deck and interact with any station or equipment.
+Ship stations - walk up to the air pump, winch, or ship wheel and interact
+Diving suit - a physical item on the ship. Walk up to it, put it on, and you can go over the side into the water. Only one suit exists by default (more could be unlocked as an upgrade?)
+Underwater movement - when wearing the suit, movement is slower and heavier. Helmet flashlight can be activated
+Loot - pick up items from the ocean floor, open chests, dig with a shovel (if owned)
+Inventory - limited carry capacity, upgradeable with bags. Weights would take up inventory slots
+Signal - maybe a ping to communicate to the ship from underwater (e.g. ask to be reeled up)?
+Ship Stations
+The ship would have interactable stations that any player can use. Walking up to a station and pressing interact locks you into it until you walk away (or press interact again?).
+Air pump - actively pumps air to the diver(s) below. If nobody is pumping, oxygen drains faster. Could be a rhythmic minigame (timed button presses) or a hold-to-pump mechanic
+Winch - controls how much cable is let out. Maybe reeling too fast causes the diver to drop loot?
+Ship wheel - steers and sails the ship between dive sites. Simple wind + rudder controls
+Diving suit rack - where the diving suit is stored. Interact to put it on and prepare to dive. Only one suit at the start.
+Loot storage - crate/chest on deck where surfaced loot is deposited. This is what gets sold to the merchant.
+
+Emergent Roles
+In a 2-player game, one might dive while the other pumps air and manages the winch. Or both could dive quickly, knowing their oxygen will drain fast with nobody pumping.
+In a 3-4 player game, you might have one diver, one on the pump, one on the winch, and one watching for threats. Or two divers and one topside player juggling both stations.
+Solo means doing everything yourself. Much harder.
+Underwater Threats
+Oxygen depletion
+Sharks and sea creatures
+Darkness
+Depth pressure?
+Cable range
+World
+Ocean and Navigation
+Randomly/procedurally generated dive sites across the ocean
+Treasure map ui element that tells you where dive sites are, and new sites unlock as quotas are met or quests are completed
+Sailing the ship (simple controls like raft)
+Day/night cycle where the night dives are darker and more dangerous and could have better or rarer loot
+Dive Sites
+Different depths for loot
+Surface loot at these sites is always there (shells, coins, small items)
+Chests can sit on the floor or be partially buried. Opened by interacting with them
+Some partially buried items would require a shovel and either take time to dig out or be difficult to unearth
+There could be fully buried treasure with higher value of loot
+Environmental hazards? E.g. coral, darker areas, underwater caves
+Underwater creatures spawns or difficulty could scale with depth and loot value
+Merchant Boat
+Instead of a dockable island outpost, a merchant trader in a small boat can pull up to your ship at the end of each quota cycle. This would keep the sell/upgrade flow tight and eliminate the need for weird land docking systems or modeling outposts.
+
+How it would work:
+At the end of each cycle (or when summoned?), the merchant boat appears and pulls up alongside your ship.
+Interact with the merchant directly from your deck - no sailing to a separate location
+Sell look from your ship’s storage to count toward the quota
+Browse and purchase gear upgrades and ship upgrades from the merchant’s inventory
+Once the transaction is done, the merchant sails off and the next cycle begins
+Looks:
+Shady trader vibes, maybe fun voice lines or unique boat designs (visually distinct)
+Gravity?
+We could have dive weights that allow you to descend to the sea floor faster. Removing them would make you ascend. There could also be a weight effect to the items you pick up, meaning the more you hold, the more you weigh and slower you move. We could also make it so you need weights to stay grounded under water, otherwise you slowly float up.
+Progression
+Diver Gear Upgrades
+Basic diving suit
+Reinforced suit
+Extended air tank
+Helmet lantern upgrade
+Different shovel (rarities)
+Loot satchel or more inventory space
+More diving suits
+Ship Upgrades (eventually)
+Better air pump
+Longer cable
+Storage crates
+Lights on the boat that illuminate the water around the ship at night
+Quota Scale
+NOT FINAL, just an idea:
+Quota 1: 100 gold - basic shallow sites only. Essentially the tutorial
+Quota 2: 250 gold - mid-depth sites
+Quota 3: 500 gold - deep sites, sharks involved
+Quota 4: 800 gold - deepest sites, rarer loot
+Quota 5+: +400 gold each? - harder difficulty
+Threats/Hazards
+Animals (show up at varying depths)
+Jellyfish
+Sharks (possibly different types)
+Hammerhead
+Etc
+Eels
+Leviathan? Might be too hard
+Environmental
+Darkness
+Depth?
+Cable length
+Currents?
+Lethal Company similarities
+Must hit quota
+Different roles per person, but not defined at the start (no fixed roles)
+Escalating dangers
+Dark
+Comms-based gameplay?
+Permadeath per dive
+UI/UX
+Contextual HUD
+The HUD adapts to what the player is currently doing.
+
+Always Visible:
+Quota tracker
+Day counter
+Compass or minimap
+When wearing the diving suit, or underwater:
+Oxygen meter
+Depth indicator
+Flashlight fuel
+Inventory slots
+Signal prompts?
+Low oxygen warning
+When operating the air pump
+Pump gauge
+View the divers current oxygen level
+View divers current depth
+When operating the winch:
+Cable indicator that shows how much is deployed vs remaining
+View divers current depth
+Reel speed warning?
+When at the ship wheel:
+Compass/heading
+Map overlay
+Wind direction? (maybe just sails show this)
+Audio
+Underwater: maybe muffled audio. Heartbeat when low on oxygen, distant whale sounds or other underwater creatures.
+Surface: Ocean waves, seagulls, ambient sounds
+Music: sea shanty? Probably just find something free
+Scope
+Might be too much
