@@ -1,14 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-/// <summary>
-/// First-person mouse look. Reads Mouse.current.delta directly — no PlayerInput needed.
-///
-/// Yaw  (left/right) rotates the parent Player GameObject.
-/// Pitch (up/down)   rotates this CameraRoot locally, clamped ±pitchClamp°.
-///
-/// Disabled on remote player instances via PlayerController.OnNetworkSpawn().
-/// </summary>
 public class PlayerCamera : MonoBehaviour
 {
     [SerializeField] private float sensitivity = 0.15f;
@@ -16,12 +8,17 @@ public class PlayerCamera : MonoBehaviour
 
     private Transform _playerBody;
     private float     _pitch;
+    private InputAction _lookAction;
 
     private void Awake()
     {
         _playerBody = transform.parent;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible   = false;
+
+        // PlayerInput lives on the root; grab Look from it
+        var pi = GetComponentInParent<PlayerInput>(includeInactive: true);
+        if (pi != null) _lookAction = pi.actions["Look"];
     }
 
     private void Update()
@@ -33,10 +30,9 @@ public class PlayerCamera : MonoBehaviour
             Cursor.visible   = true;
         }
 
-        var mouse = Mouse.current;
-        if (mouse == null) return;
+        if (_lookAction == null) return;
 
-        var delta = mouse.delta.ReadValue() * sensitivity;
+        var delta = _lookAction.ReadValue<Vector2>() * sensitivity;
 
         // Pitch — rotate CameraRoot locally
         _pitch -= delta.y;

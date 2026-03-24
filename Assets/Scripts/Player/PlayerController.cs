@@ -2,18 +2,6 @@ using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-/// <summary>
-/// First-person player controller with two movement states:
-///   OnDeck    — normal WASD + gravity via CharacterController
-///   Underwater — full 3D swimming (WASD horizontal, Space = up, Ctrl/C = down)
-///
-/// Reads input directly from Keyboard.current / Mouse.current — no PlayerInput
-/// component callbacks needed. Each machine controls exactly one player, so
-/// global device polling is correct for online co-op.
-///
-/// Only the owning client runs input + movement. Remote players are driven by
-/// NetworkTransform sync only.
-/// </summary>
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : NetworkBehaviour
 {
@@ -28,15 +16,17 @@ public class PlayerController : NetworkBehaviour
     [Header("References")]
     [SerializeField] private OceanWaves oceanWaves;
     [SerializeField] private Transform cameraRoot;
+    [SerializeField] private Renderer bodyRenderer;
+    [SerializeField] private PlayerInput playerInput;
 
     private CharacterController _cc;
     private PlayerState _state = PlayerState.OnDeck;
     private float _verticalVelocity;
+    private InputAction _moveAction;
+    private InputAction _jumpAction;
+    private InputAction _crouchAction;
 
-    private void Awake()
-    {
-        _cc = GetComponent<CharacterController>();
-    }
+    private void Awake() => _cc = GetComponent<CharacterController>();
 
     private void Start()
     {
@@ -46,13 +36,32 @@ public class PlayerController : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        if (IsOwner) return;
+        if (IsOwner)
+        {
+            if (bodyRenderer != null) bodyRenderer.enabled = false;
 
-        // Disable camera for remote players
+            if (playerInput != null)
+            {
+                playerInput.enabled = true;
+                _moveAction  = playerInput.actions["Move"];
+                _jumpAction  = playerInput.actions["Jump"];
+                _crouchAction = playerInput.actions["Crouch"];
+            }
+
+            enabled = true;
+            return;
+        }
+
+        // Non-owner: disable input and camera so this machine doesn't control the remote player
+        if (playerInput != null) playerInput.enabled = false;
+
         if (cameraRoot != null)
         {
             var cam = cameraRoot.GetComponent<Camera>();
             if (cam != null) cam.enabled = false;
+
+            var listener = cameraRoot.GetComponent<AudioListener>();
+            if (listener != null) listener.enabled = false;
 
             var playerCam = cameraRoot.GetComponent<PlayerCamera>();
             if (playerCam != null) playerCam.enabled = false;
@@ -92,12 +101,8 @@ public class PlayerController : NetworkBehaviour
 
     private void HandleDeckMovement()
     {
-        var kb = Keyboard.current;
-        if (kb == null) return;
-
-        float h = (kb.dKey.isPressed ? 1f : 0f) - (kb.aKey.isPressed ? 1f : 0f);
-        float v = (kb.wKey.isPressed ? 1f : 0f) - (kb.sKey.isPressed ? 1f : 0f);
-        var moveInput = new Vector2(h, v);
+        if (_moveAction == null) return;
+        var moveInput = _moveAction.ReadValue<Vector2>();
 
         if (_cc.isGrounded && _verticalVelocity < 0f)
             _verticalVelocity = -2f;
@@ -110,24 +115,19 @@ public class PlayerController : NetworkBehaviour
 
     private void HandleUnderwaterMovement()
     {
-        var kb = Keyboard.current;
-        if (kb == null) return;
-
-        float h = (kb.dKey.isPressed ? 1f : 0f) - (kb.aKey.isPressed ? 1f : 0f);
-        float v = (kb.wKey.isPressed ? 1f : 0f) - (kb.sKey.isPressed ? 1f : 0f);
+        if (_moveAction == null) return;
+        var moveInput = _moveAction.ReadValue<Vector2>();
 
         Transform cam = cameraRoot != null ? cameraRoot : transform;
         Vector3 forward = Vector3.ProjectOnPlane(cam.forward, Vector3.up).normalized;
         Vector3 right   = Vector3.ProjectOnPlane(cam.right,   Vector3.up).normalized;
-
-        Vector3 horizontal = (forward * v + right * h) * swimSpeed;
+        Vector3 horizontal = (forward * moveInput.y + right * moveInput.x) * swimSpeed;
 
         float targetVertical = 0f;
-        if (kb.spaceKey.isPressed)   targetVertical =  swimVerticalSpeed;
-        if (kb.leftCtrlKey.isPressed || kb.cKey.isPressed) targetVertical = -swimVerticalSpeed;
+        if (_jumpAction  != null && _jumpAction.IsPressed())  targetVertical =  swimVerticalSpeed;
+        if (_crouchAction != null && _crouchAction.IsPressed()) targetVertical = -swimVerticalSpeed;
 
         _verticalVelocity = Mathf.Lerp(_verticalVelocity, targetVertical, Time.deltaTime * 4f);
-
         _cc.Move((horizontal + Vector3.up * _verticalVelocity) * Time.deltaTime);
     }
 }
