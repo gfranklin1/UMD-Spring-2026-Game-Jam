@@ -18,6 +18,13 @@ public class PlayerController : NetworkBehaviour
     [SerializeField] private float surfaceFloatDepth = 1.2f;
     [SerializeField] private float buoyancySpring = 6f;
 
+    [Header("Player Stats")]
+    [SerializeField] private float maxHealth        = 100f;
+    [SerializeField] private float maxBreathSeconds = 30f;   // no-suit breath hold
+    [SerializeField] private float maxSuitBuffer    = 60f;   // line buffer with suit
+    [SerializeField] private float oxygenRefillRate = 1f;    // units/s refill above water (no suit)
+    [SerializeField] private float drownDamageRate  = 20f;   // HP/s when oxygen == 0 underwater
+
     [Header("References")]
     [SerializeField] private OceanWaves oceanWaves;
     [SerializeField] private Transform cameraRoot;
@@ -38,6 +45,9 @@ public class PlayerController : NetworkBehaviour
     private InteractableStation _currentStation;
     private DivingSuitRack _suitRack;
     private const float InteractRange = 2.5f;
+    private float _health;
+    private float _oxygen;
+    private bool  _pumpIsActive;   // set by pump station; prevents suit oxygen drain when true
 
     private void Awake() => _cc = GetComponent<CharacterController>();
 
@@ -66,6 +76,8 @@ public class PlayerController : NetworkBehaviour
                 _interactAction.canceled  += OnInteractCanceled;
             }
 
+            _health = maxHealth;
+            _oxygen = maxBreathSeconds;
             enabled = true;
             return;
         }
@@ -116,6 +128,9 @@ public class PlayerController : NetworkBehaviour
                 HandleUnderwaterMovement();
                 break;
         }
+        // Run after UpdateWaterState so _state reflects this frame
+        UpdateOxygen();
+        UpdateHealth();
     }
 
     private void UpdateWaterState()
@@ -128,9 +143,9 @@ public class PlayerController : NetworkBehaviour
         {
             _preDiveState = _state;
             _state = PlayerState.Underwater;
-            // Carry downward momentum so the player dives in naturally.
-            // Clamp: never upward on entry, never faster than 2× swimVerticalSpeed.
-            _verticalVelocity = Mathf.Clamp(_verticalVelocity, -swimVerticalSpeed * 2f, 0f);
+            // Carry full downward momentum through so the player dives naturally.
+            // Only strip upward velocity; don't cap how fast they can sink on entry.
+            if (_verticalVelocity > 0f) _verticalVelocity = 0f;
             Debug.Log($"[Player] Entered water (was {_preDiveState})");
         }
         else if (!inWater && _state == PlayerState.Underwater)
@@ -187,13 +202,14 @@ public class PlayerController : NetworkBehaviour
         }
         else
         {
-            // Water drag: momentum decays to ~10% in 1 second, so fall feels like hitting water
-            _verticalVelocity *= Mathf.Pow(0.1f, Time.deltaTime);
+            // Water drag: momentum decays to ~35% in 1 second — feels like water resistance, not a wall
+            _verticalVelocity *= Mathf.Pow(0.35f, Time.deltaTime);
             // Buoyancy spring adds force (not a velocity target) so it works with existing momentum
             float targetY = _currentWaveHeight - surfaceFloatDepth;
             float error   = targetY - transform.position.y;
             _verticalVelocity += error * buoyancySpring * Time.deltaTime;
-            _verticalVelocity = Mathf.Clamp(_verticalVelocity, -swimVerticalSpeed * 2f, swimVerticalSpeed * 2f);
+            // Allow higher downward speed so fall momentum can carry the player deep before buoyancy wins
+            _verticalVelocity = Mathf.Clamp(_verticalVelocity, -swimVerticalSpeed * 6f, swimVerticalSpeed * 2f);
         }
 
         _cc.Move((horizontal + Vector3.up * _verticalVelocity) * Time.deltaTime);
@@ -270,6 +286,7 @@ public class PlayerController : NetworkBehaviour
 
     public void EquipSuit(DivingSuitRack rack)
     {
+        _oxygen = 0f;   // line is empty until pumped
         _suitRack = rack;
         _state = PlayerState.WearingSuit;
         Debug.Log("[Player] Suit equipped → WearingSuit (slower movement)");
@@ -281,6 +298,59 @@ public class PlayerController : NetworkBehaviour
         _suitRack?.ReturnSuit();
         _suitRack = null;
         _state = PlayerState.OnDeck;
+        _oxygen = maxBreathSeconds;   // back to normal breath above water
         Debug.Log("[Player] Suit removed → OnDeck");
     }
+
+    private void UpdateOxygen()
+    {
+        // Use head position so oxygen only drains when the player is fully submerged,
+        // not just because their feet/center crossed the wave surface.
+        float headY  = transform.position.y + _cc.height * 0.5f;
+        bool  headUnderwater = _state == PlayerState.Underwater && headY < _currentWaveHeight;
+        bool  suitOn = _state == PlayerState.WearingSuit
+                    || (_state == PlayerState.Underwater && _preDiveState == PlayerState.WearingSuit);
+
+        if (!headUnderwater)
+        {
+            if (!suitOn)
+                _oxygen = Mathf.Min(_oxygen + oxygenRefillRate * Time.deltaTime, maxBreathSeconds);
+            // Suited above water: pump manages the buffer; nothing automatic here
+        }
+        else
+        {
+            if (!suitOn)
+                _oxygen -= Time.deltaTime;
+            else if (!_pumpIsActive)
+                _oxygen -= Time.deltaTime;
+            // Pump active: no drain
+            _oxygen = Mathf.Max(_oxygen, 0f);
+        }
+    }
+
+    private void UpdateHealth()
+    {
+        float headY = transform.position.y + _cc.height * 0.5f;
+        bool  drowning = _state == PlayerState.Underwater && headY < _currentWaveHeight && _oxygen <= 0f;
+        if (drowning)
+            _health = Mathf.Max(_health - drownDamageRate * Time.deltaTime, 0f);
+    }
+
+    /// <summary>Called by the pump station each frame it is actively pumping.</summary>
+    public void AddPumpedAir(float seconds)
+    {
+        if (_state == PlayerState.WearingSuit || _preDiveState == PlayerState.WearingSuit)
+            _oxygen = Mathf.Min(_oxygen + seconds, maxSuitBuffer);
+    }
+
+    /// <summary>Called by the pump station when its active state changes.</summary>
+    public void SetPumpActive(bool active) => _pumpIsActive = active;
+
+    // HUD read-only accessors
+    public float Health   => _health;
+    public float MaxHealth => maxHealth;
+    public float Oxygen   => _oxygen;
+    public float OxygenCapacity => (_state == PlayerState.WearingSuit
+                                 || _preDiveState == PlayerState.WearingSuit)
+                                 ? maxSuitBuffer : maxBreathSeconds;
 }
