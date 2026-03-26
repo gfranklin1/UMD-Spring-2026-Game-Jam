@@ -8,7 +8,8 @@ public class PlayerController : NetworkBehaviour
     private enum PlayerState { OnDeck, AtStation, WearingSuit, Underwater }
 
     [Header("Movement")]
-    [SerializeField] private float walkSpeed = 4f;
+    [SerializeField] private float walkSpeed = 6f;
+    [SerializeField] private float sprintSpeed = 10f;
     [SerializeField] private float suitWalkSpeed = 2f;
     [SerializeField] private float swimSpeed = 2.5f;
     [SerializeField] private float swimVerticalSpeed = 2f;
@@ -32,6 +33,7 @@ public class PlayerController : NetworkBehaviour
     private InputAction _jumpAction;
     private InputAction _crouchAction;
     private InputAction _interactAction;
+    private InputAction _sprintAction;
     private IInteractable _nearestInteractable;
     private InteractableStation _currentStation;
     private DivingSuitRack _suitRack;
@@ -58,6 +60,7 @@ public class PlayerController : NetworkBehaviour
                 _jumpAction   = playerInput.actions["Jump"];
                 _crouchAction = playerInput.actions["Crouch"];
                 _interactAction = playerInput.actions["Interact"];
+                _sprintAction   = playerInput.actions["Sprint"];
                 _interactAction.started   += OnInteractStarted;
                 _interactAction.performed += OnInteractHeld;
                 _interactAction.canceled  += OnInteractCanceled;
@@ -153,7 +156,10 @@ public class PlayerController : NetworkBehaviour
 
         _verticalVelocity += gravity * Time.deltaTime;
 
-        float speed = _state == PlayerState.WearingSuit ? suitWalkSpeed : walkSpeed;
+        bool sprinting = _state == PlayerState.OnDeck && _sprintAction != null && _sprintAction.IsPressed();
+        float speed = _state == PlayerState.WearingSuit ? suitWalkSpeed
+                    : sprinting                         ? sprintSpeed
+                    :                                    walkSpeed;
         Vector3 move = transform.TransformDirection(new Vector3(moveInput.x, 0f, moveInput.y));
         _cc.Move((move * speed + Vector3.up * _verticalVelocity) * Time.deltaTime);
     }
@@ -171,27 +177,25 @@ public class PlayerController : NetworkBehaviour
         bool pushingUp   = _jumpAction   != null && _jumpAction.IsPressed();
         bool pushingDown = _crouchAction != null && _crouchAction.IsPressed();
 
-        float targetVertical;
-        float lerpSpeed;
         if (pushingUp)
         {
-            targetVertical = swimVerticalSpeed * 2.5f;  // noticeably faster than natural buoyancy
-            lerpSpeed = 10f;
+            _verticalVelocity = Mathf.Lerp(_verticalVelocity, swimVerticalSpeed * 2.5f, Time.deltaTime * 10f);
         }
         else if (pushingDown)
         {
-            targetVertical = -swimVerticalSpeed * 1.5f;  // slightly easier to dive
-            lerpSpeed = 10f;
+            _verticalVelocity = Mathf.Lerp(_verticalVelocity, -swimVerticalSpeed * 1.5f, Time.deltaTime * 10f);
         }
         else
         {
-            float targetY  = _currentWaveHeight - surfaceFloatDepth;
-            float error    = targetY - transform.position.y;
-            targetVertical = Mathf.Clamp(error * buoyancySpring, -swimVerticalSpeed, swimVerticalSpeed);
-            lerpSpeed = 6f;
+            // Water drag: momentum decays to ~10% in 1 second, so fall feels like hitting water
+            _verticalVelocity *= Mathf.Pow(0.1f, Time.deltaTime);
+            // Buoyancy spring adds force (not a velocity target) so it works with existing momentum
+            float targetY = _currentWaveHeight - surfaceFloatDepth;
+            float error   = targetY - transform.position.y;
+            _verticalVelocity += error * buoyancySpring * Time.deltaTime;
+            _verticalVelocity = Mathf.Clamp(_verticalVelocity, -swimVerticalSpeed * 2f, swimVerticalSpeed * 2f);
         }
 
-        _verticalVelocity = Mathf.Lerp(_verticalVelocity, targetVertical, Time.deltaTime * lerpSpeed);
         _cc.Move((horizontal + Vector3.up * _verticalVelocity) * Time.deltaTime);
     }
 
