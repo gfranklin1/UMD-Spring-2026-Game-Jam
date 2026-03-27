@@ -20,11 +20,12 @@ public class PlayerController : NetworkBehaviour
     [SerializeField] private float speedChangeRate = 15f;  // units/s — acceleration rate between walk and sprint
 
     [Header("Player Stats")]
-    [SerializeField] private float maxHealth        = 100f;
-    [SerializeField] private float maxBreathSeconds = 30f;   // no-suit breath hold
-    [SerializeField] private float maxSuitBuffer    = 60f;   // line buffer with suit
-    [SerializeField] private float oxygenRefillRate = 1f;    // units/s refill above water (no suit)
-    [SerializeField] private float drownDamageRate  = 20f;   // HP/s when oxygen == 0 underwater
+    [SerializeField] private float maxHealth              = 100f;
+    [SerializeField] private float maxBreathSeconds       = 30f;   // no-suit breath hold
+    [SerializeField] private float maxSuitBuffer          = 60f;   // line buffer with suit
+    [SerializeField] private float drownDamageRate        = 20f;   // HP/s when oxygen == 0 underwater
+    [SerializeField] private float depthDrainMultiplier   = 0.05f; // +5% drain per metre depth (suited)
+    [SerializeField] private float movementDrainMultiplier = 0.08f;// +8% drain per m/s movement (suited)
 
     [Header("References")]
     [SerializeField] private OceanWaves oceanWaves;
@@ -49,7 +50,13 @@ public class PlayerController : NetworkBehaviour
     private float _health;
     private float _oxygen;
     private float _currentSpeed;
-    private bool  _pumpIsActive;   // set by pump station; prevents suit oxygen drain when true
+    private float _pumpFlowRate;   // oxygen/s currently delivered by the pump (0 when not pumping)
+    private float _lastSentPumpFlow;
+
+    // Synced so the server can find the suited player when routing pump RPCs
+    private NetworkVariable<bool> _networkWearingSuit = new NetworkVariable<bool>(false,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Owner);
 
     private void Awake() => _cc = GetComponent<CharacterController>();
 
@@ -231,7 +238,7 @@ public class PlayerController : NetworkBehaviour
         float nearestDist = float.MaxValue;
         foreach (var hit in hits)
         {
-            var interactable = hit.GetComponent<IInteractable>();
+            var interactable = hit.GetComponentInParent<IInteractable>();
             if (interactable == null) continue;
             float dist = (hit.transform.position - transform.position).sqrMagnitude;
             if (dist < nearestDist) { nearestDist = dist; nearest = interactable; }
@@ -249,13 +256,25 @@ public class PlayerController : NetworkBehaviour
     private void HandleAtStationState()
     {
         var moveInput = _moveAction?.ReadValue<Vector2>() ?? Vector2.zero;
-        if (moveInput.magnitude > 0.1f)
-        {
-            ReleaseFromStation();
-            return;
-        }
+        if (moveInput.magnitude > 0.1f) { ReleaseFromStation(); return; }
+
         if (_currentStation is AirPumpStation pump)
-            pump.PumpOperatorTick(this, Time.deltaTime);
+        {
+            if (_jumpAction != null && _jumpAction.WasPressedThisFrame())
+                pump.OnCrank();
+
+            // Read flow rate from pump and push it to the diver
+            float flow = pump.CurrentFlowRate;
+            if (Mathf.Abs(flow - _lastSentPumpFlow) > 0.05f)
+            {
+                _lastSentPumpFlow = flow;
+                bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+                if (networked)
+                    SendPumpFlowServerRpc(flow);
+                else
+                    ApplyPumpFlowLocal(flow);
+            }
+        }
     }
 
     private void OnInteractStarted(InputAction.CallbackContext ctx)
@@ -289,7 +308,14 @@ public class PlayerController : NetworkBehaviour
     {
         Debug.Log("[Player] Released from station");
         if (_currentStation is AirPumpStation pump)
+        {
             pump.OnOperatorLeft(this);
+            // Tell server to zero the diver's flow rate
+            _lastSentPumpFlow = 0f;
+            bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+            if (networked) SendPumpFlowServerRpc(0f);
+            else           ApplyPumpFlowLocal(0f);
+        }
         _currentStation?.Release(this);
         _currentStation = null;
         _state = PlayerState.OnDeck;
@@ -300,43 +326,64 @@ public class PlayerController : NetworkBehaviour
         _oxygen = 0f;   // line is empty until pumped
         _suitRack = rack;
         _state = PlayerState.WearingSuit;
+        if (IsOwner) _networkWearingSuit.Value = true;
         Debug.Log("[Player] Suit equipped → WearingSuit (slower movement)");
     }
 
     public void UnequipSuit()
     {
         if (_state != PlayerState.WearingSuit) return;
-        SetPumpActive(false);
+        SetPumpFlowRate(0f);
         _suitRack?.ReturnSuit();
         _suitRack = null;
         _state = PlayerState.OnDeck;
         _oxygen = maxBreathSeconds;   // back to normal breath above water
+        if (IsOwner) _networkWearingSuit.Value = false;
         Debug.Log("[Player] Suit removed → OnDeck");
+    }
+
+    // True on all clients when this player is wearing a suit (networked) or local state (single-player)
+    public bool IsWearingSuit
+    {
+        get
+        {
+            bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+            if (networked) return _networkWearingSuit.Value;
+            return _state == PlayerState.WearingSuit
+                || (_state == PlayerState.Underwater && _preDiveState == PlayerState.WearingSuit);
+        }
     }
 
     private void UpdateOxygen()
     {
-        // Use head position so oxygen only drains when the player is fully submerged,
-        // not just because their feet/center crossed the wave surface.
-        float headY  = transform.position.y + _cc.height * 0.5f;
+        float headY          = transform.position.y + _cc.height * 0.5f;
         bool  headUnderwater = _state == PlayerState.Underwater && headY < _currentWaveHeight;
-        bool  suitOn = _state == PlayerState.WearingSuit
-                    || (_state == PlayerState.Underwater && _preDiveState == PlayerState.WearingSuit);
+        bool  suitOn         = _state == PlayerState.WearingSuit
+                            || (_state == PlayerState.Underwater && _preDiveState == PlayerState.WearingSuit);
 
-        if (!headUnderwater)
+        if (suitOn)
         {
-            if (!suitOn)
-                _oxygen = Mathf.Min(_oxygen + oxygenRefillRate * Time.deltaTime, maxBreathSeconds);
-            // Suited above water: pump manages the buffer; nothing automatic here
+            if (headUnderwater)
+            {
+                float depth       = Mathf.Max(0f, _currentWaveHeight - transform.position.y);
+                float speed       = new Vector3(_cc.velocity.x, 0f, _cc.velocity.z).magnitude;
+                float consumption = 1f + depthDrainMultiplier * depth + movementDrainMultiplier * speed;
+                float net         = _pumpFlowRate - consumption;
+                _oxygen = Mathf.Clamp(_oxygen + net * Time.deltaTime, 0f, maxSuitBuffer);
+            }
+            else
+            {
+                // Above water with suit: pump pre-fills the line buffer
+                if (_pumpFlowRate > 0f)
+                    _oxygen = Mathf.Min(_oxygen + _pumpFlowRate * Time.deltaTime, maxSuitBuffer);
+            }
         }
         else
         {
-            if (!suitOn)
-                _oxygen -= Time.deltaTime;
-            else if (!_pumpIsActive)
-                _oxygen -= Time.deltaTime;
-            // Pump active: no drain
-            _oxygen = Mathf.Max(_oxygen, 0f);
+            if (headUnderwater)
+                _oxygen = Mathf.Max(_oxygen - Time.deltaTime, 0f);
+            else
+                _oxygen = Mathf.Min(_oxygen + Time.deltaTime, maxBreathSeconds);
         }
     }
 
@@ -348,42 +395,57 @@ public class PlayerController : NetworkBehaviour
             _health = Mathf.Max(_health - drownDamageRate * Time.deltaTime, 0f);
     }
 
-    /// <summary>Called by the pump station each frame it is actively pumping.</summary>
-    public void AddPumpedAir(float seconds)
+    /// <summary>Called by the pump station to set the continuous oxygen flow rate (oxygen/s).</summary>
+    public void SetPumpFlowRate(float rate)
     {
-        if (_state == PlayerState.WearingSuit || _preDiveState == PlayerState.WearingSuit)
-            _oxygen = Mathf.Min(_oxygen + seconds, maxSuitBuffer);
+        Debug.Log($"[Player] SetPumpFlowRate={rate:F2} (IsOwner={IsOwner})");
+        _pumpFlowRate = rate;
     }
 
-    /// <summary>Called by the pump station when its active state changes.</summary>
-    public void SetPumpActive(bool active) => _pumpIsActive = active;
-
     // HUD read-only accessors
-    public float Health   => _health;
-    public float MaxHealth => maxHealth;
-    public float Oxygen   => _oxygen;
+    public float Health        => _health;
+    public float MaxHealth     => maxHealth;
+    public float Oxygen        => _oxygen;
     public float OxygenCapacity => (_state == PlayerState.WearingSuit
                                  || _preDiveState == PlayerState.WearingSuit)
                                  ? maxSuitBuffer : maxBreathSeconds;
 
     // ── Pump RPCs ─────────────────────────────────────────────────────────────
-    // AirPumpStation calls these so the oxygen update lands on the diver's client.
+    // Operator calls SendPumpFlowServerRpc on their OWN PlayerController.
+    // Server finds the suited diver and forwards the flow rate via ClientRpc.
 
-    [Unity.Netcode.ServerRpc(RequireOwnership = false)]
-    public void SetPumpActiveServerRpc(bool active) => SetPumpActiveClientRpc(active);
-
-    [Unity.Netcode.ClientRpc]
-    private void SetPumpActiveClientRpc(bool active)
+    [ServerRpc]
+    private void SendPumpFlowServerRpc(float flowRate)
     {
-        if (IsOwner) SetPumpActive(active);
+        // Server-side: find the suited player by NetworkVariable (authoritative on server)
+        foreach (var pc in FindObjectsByType<PlayerController>(FindObjectsInactive.Exclude))
+        {
+            if (pc._networkWearingSuit.Value)
+            {
+                Debug.Log($"[Server] Routing pump flow {flowRate:F2} to diver {pc.name}");
+                pc.ReceivePumpFlowClientRpc(flowRate);
+                return;
+            }
+        }
+        Debug.Log("[Server] SendPumpFlow: no suited diver found");
     }
 
-    [Unity.Netcode.ServerRpc(RequireOwnership = false)]
-    public void AddPumpedAirServerRpc(float amount) => AddPumpedAirClientRpc(amount);
-
-    [Unity.Netcode.ClientRpc]
-    private void AddPumpedAirClientRpc(float amount)
+    [ClientRpc]
+    private void ReceivePumpFlowClientRpc(float flowRate)
     {
-        if (IsOwner) AddPumpedAir(amount);
+        if (IsOwner) SetPumpFlowRate(flowRate);
+    }
+
+    /// <summary>Single-player fallback: find the suited player locally.</summary>
+    private void ApplyPumpFlowLocal(float flowRate)
+    {
+        foreach (var pc in FindObjectsByType<PlayerController>(FindObjectsInactive.Exclude))
+        {
+            if (pc != this && pc.IsWearingSuit)
+            {
+                pc.SetPumpFlowRate(flowRate);
+                return;
+            }
+        }
     }
 }
