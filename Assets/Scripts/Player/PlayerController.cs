@@ -17,6 +17,7 @@ public class PlayerController : NetworkBehaviour
     [SerializeField] private float jumpForce = 6f;
     [SerializeField] private float surfaceFloatDepth = 1.2f;
     [SerializeField] private float buoyancySpring = 6f;
+    [SerializeField] private float speedChangeRate = 15f;  // units/s — acceleration rate between walk and sprint
 
     [Header("Player Stats")]
     [SerializeField] private float maxHealth        = 100f;
@@ -42,11 +43,12 @@ public class PlayerController : NetworkBehaviour
     private InputAction _interactAction;
     private InputAction _sprintAction;
     private IInteractable _nearestInteractable;
-    private InteractableStation _currentStation;
+    private IInteractable _currentStation;
     private DivingSuitRack _suitRack;
     private const float InteractRange = 2.5f;
     private float _health;
     private float _oxygen;
+    private float _currentSpeed;
     private bool  _pumpIsActive;   // set by pump station; prevents suit oxygen drain when true
 
     private void Awake() => _cc = GetComponent<CharacterController>();
@@ -78,6 +80,7 @@ public class PlayerController : NetworkBehaviour
 
             _health = maxHealth;
             _oxygen = maxBreathSeconds;
+            _currentSpeed = walkSpeed;
             enabled = true;
             return;
         }
@@ -172,11 +175,12 @@ public class PlayerController : NetworkBehaviour
         _verticalVelocity += gravity * Time.deltaTime;
 
         bool sprinting = _state == PlayerState.OnDeck && _sprintAction != null && _sprintAction.IsPressed();
-        float speed = _state == PlayerState.WearingSuit ? suitWalkSpeed
-                    : sprinting                         ? sprintSpeed
-                    :                                    walkSpeed;
+        float targetSpeed = _state == PlayerState.WearingSuit ? suitWalkSpeed
+                          : sprinting                         ? sprintSpeed
+                          :                                    walkSpeed;
+        _currentSpeed = Mathf.MoveTowards(_currentSpeed, targetSpeed, speedChangeRate * Time.deltaTime);
         Vector3 move = transform.TransformDirection(new Vector3(moveInput.x, 0f, moveInput.y));
-        _cc.Move((move * speed + Vector3.up * _verticalVelocity) * Time.deltaTime);
+        _cc.Move((move * _currentSpeed + Vector3.up * _verticalVelocity) * Time.deltaTime);
     }
 
     private void HandleUnderwaterMovement()
@@ -246,7 +250,12 @@ public class PlayerController : NetworkBehaviour
     {
         var moveInput = _moveAction?.ReadValue<Vector2>() ?? Vector2.zero;
         if (moveInput.magnitude > 0.1f)
+        {
             ReleaseFromStation();
+            return;
+        }
+        if (_currentStation is AirPumpStation pump)
+            pump.PumpOperatorTick(this, Time.deltaTime);
     }
 
     private void OnInteractStarted(InputAction.CallbackContext ctx)
@@ -268,17 +277,19 @@ public class PlayerController : NetworkBehaviour
         _nearestInteractable?.OnInteractCancel(this);
     }
 
-    public void LockToStation(InteractableStation station)
+    public void LockToStation(IInteractable station)
     {
         _state = PlayerState.AtStation;
         _currentStation = station;
         _verticalVelocity = 0f;
-        Debug.Log($"[Player] Locked to station: {station.name}");
+        Debug.Log($"[Player] Locked to station: {(station as UnityEngine.Object)?.name ?? station.ToString()}");
     }
 
     public void ReleaseFromStation()
     {
         Debug.Log("[Player] Released from station");
+        if (_currentStation is AirPumpStation pump)
+            pump.OnOperatorLeft(this);
         _currentStation?.Release(this);
         _currentStation = null;
         _state = PlayerState.OnDeck;
@@ -295,6 +306,7 @@ public class PlayerController : NetworkBehaviour
     public void UnequipSuit()
     {
         if (_state != PlayerState.WearingSuit) return;
+        SetPumpActive(false);
         _suitRack?.ReturnSuit();
         _suitRack = null;
         _state = PlayerState.OnDeck;
@@ -353,4 +365,25 @@ public class PlayerController : NetworkBehaviour
     public float OxygenCapacity => (_state == PlayerState.WearingSuit
                                  || _preDiveState == PlayerState.WearingSuit)
                                  ? maxSuitBuffer : maxBreathSeconds;
+
+    // ── Pump RPCs ─────────────────────────────────────────────────────────────
+    // AirPumpStation calls these so the oxygen update lands on the diver's client.
+
+    [Unity.Netcode.ServerRpc(RequireOwnership = false)]
+    public void SetPumpActiveServerRpc(bool active) => SetPumpActiveClientRpc(active);
+
+    [Unity.Netcode.ClientRpc]
+    private void SetPumpActiveClientRpc(bool active)
+    {
+        if (IsOwner) SetPumpActive(active);
+    }
+
+    [Unity.Netcode.ServerRpc(RequireOwnership = false)]
+    public void AddPumpedAirServerRpc(float amount) => AddPumpedAirClientRpc(amount);
+
+    [Unity.Netcode.ClientRpc]
+    private void AddPumpedAirClientRpc(float amount)
+    {
+        if (IsOwner) AddPumpedAir(amount);
+    }
 }
