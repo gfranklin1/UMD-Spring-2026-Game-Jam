@@ -342,6 +342,7 @@ Transform:
   - {fileID: 6831408076068373272}
   - {fileID: 4594550955032545372}
   - {fileID: 2338476363572573461}
+  - {fileID: 5881578563765247234}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!143 &1661108537283099742
@@ -463,6 +464,10 @@ MonoBehaviour:
   surfaceFloatDepth: 1.2
   buoyancySpring: 6
   speedChangeRate: 15
+  bootSinkSpeed: 8
+  bootWalkSpeed: 1.5
+  bootHopForce: 3
+  bootKickHoldTime: 1
   maxHealth: 100
   maxBreathSeconds: 30
   maxSuitBuffer: 60
@@ -519,6 +524,8 @@ MonoBehaviour:
   _hudCanvas: {fileID: 7883319742559072904}
   _healthFillRT: {fileID: 8671310195078983582}
   _oxygenFillRT: {fileID: 6730308145939610584}
+  _bootPromptText: {fileID: 0}
+  _bootKickFillRT: {fileID: 0}
 --- !u!114 &4033270893151352343
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -533,13 +540,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DiveCableSystem
   ShowTopMostFoldoutHeaderGroup: 1
   maxCableLength: 30
-  segmentCount: 10
-  maxSag: 3
+  ropeNodeCount: 22
+  constraintIterations: 4
+  ropeGravity: 9.8
+  nodeCollisionRadius: 0.06
+  collisionMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  tubeSides: 6
+  airTubeRadius: 0.04
+  commTubeRadius: 0.02
   cableSpacing: 0.15
   airCableMaterial: {fileID: 2100000, guid: 541b4f38a3abb104abee2871c8d7e0ee, type: 2}
-  airCableWidth: 0.08
   commRopeMaterial: {fileID: 2100000, guid: e50ac79793b60834baf53c1777f3f66e, type: 2}
-  commRopeWidth: 0.04
+  commRopeAnchorTransform: {fileID: 0}
+  _playerAttachPoint: {fileID: 5881578563765247234}
 --- !u!1 &6340228109982231904
 GameObject:
   m_ObjectHideFlags: 0
@@ -885,3 +900,34 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &8665428954177803308
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5881578563765247234}
+  m_Layer: 0
+  m_Name: AttachPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5881578563765247234
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8665428954177803308}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.8, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8440274965218863379}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

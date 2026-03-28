@@ -16,6 +16,15 @@ public class AirPumpStation : MonoBehaviour, IInteractable
     [SerializeField] private float crankStrength  = 0.3f;  // momentum added per crank press
     [SerializeField] private float momentumDecay  = 0.15f; // momentum lost per second (0–1 scale)
 
+    [Header("Hose Attachment")]
+    [Tooltip("Assign an empty child GameObject at the nozzle/port where the air hose exits the pump box.")]
+    [SerializeField] private Transform _hosePort;
+
+    /// <summary>World position where the air hose connects to this pump.</summary>
+    public Vector3 HosePosition => _hosePort != null
+        ? _hosePort.position
+        : transform.position + transform.up * 0.5f;
+
     private PlayerController _operator;
     private float _pumpMomentum;
 

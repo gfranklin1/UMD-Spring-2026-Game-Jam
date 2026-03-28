@@ -19,6 +19,12 @@ public class PlayerController : NetworkBehaviour
     [SerializeField] private float buoyancySpring = 6f;
     [SerializeField] private float speedChangeRate = 15f;  // units/s — acceleration rate between walk and sprint
 
+    [Header("Diving Boots")]
+    [SerializeField] private float bootSinkSpeed    = 8f;   // max downward speed (no buoyancy)
+    [SerializeField] private float bootWalkSpeed    = 1.5f; // horizontal speed on ocean floor
+    [SerializeField] private float bootHopForce     = 3f;   // small hop impulse on floor
+    [SerializeField] private float bootKickHoldTime = 1f;   // seconds to hold Q to kick boots off
+
     [Header("Player Stats")]
     [SerializeField] private float maxHealth              = 100f;
     [SerializeField] private float maxBreathSeconds       = 30f;   // no-suit breath hold
@@ -44,6 +50,9 @@ public class PlayerController : NetworkBehaviour
     private InputAction _crouchAction;
     private InputAction _interactAction;
     private InputAction _sprintAction;
+    private InputAction _dropAction;
+    private bool  _hasBoots      = false;
+    private float _bootKickTimer = 0f;
     private IInteractable _nearestInteractable;
     private IInteractable _currentStation;
     private DivingSuitRack _suitRack;
@@ -85,6 +94,7 @@ public class PlayerController : NetworkBehaviour
                 _crouchAction = playerInput.actions["Crouch"];
                 _interactAction = playerInput.actions["Interact"];
                 _sprintAction   = playerInput.actions["Sprint"];
+                _dropAction     = playerInput.actions["Drop"];
                 _interactAction.started   += OnInteractStarted;
                 _interactAction.performed += OnInteractHeld;
                 _interactAction.canceled  += OnInteractCanceled;
@@ -140,7 +150,8 @@ public class PlayerController : NetworkBehaviour
                 break;
             case PlayerState.Underwater:
                 UpdateWaterState();
-                HandleUnderwaterMovement();
+                if (_hasBoots) HandleSuitedUnderwaterMovement();
+                else           HandleUnderwaterMovement();
                 break;
         }
         // Run after UpdateWaterState so _state reflects this frame
@@ -158,9 +169,10 @@ public class PlayerController : NetworkBehaviour
         {
             _preDiveState = _state;
             _state = PlayerState.Underwater;
-            // Carry full downward momentum through so the player dives naturally.
-            // Only strip upward velocity; don't cap how fast they can sink on entry.
             if (_verticalVelocity > 0f) _verticalVelocity = 0f;
+            // Boots are heavy — ensure immediate weighted sinking on entry
+            if (_hasBoots && _verticalVelocity > -bootSinkSpeed * 0.3f)
+                _verticalVelocity = -bootSinkSpeed * 0.3f;
             Debug.Log($"[Player] Entered water (was {_preDiveState})");
         }
         else if (!inWater && _state == PlayerState.Underwater)
@@ -231,6 +243,47 @@ public class PlayerController : NetworkBehaviour
 
         _cc.Move((horizontal + Vector3.up * _verticalVelocity) * Time.deltaTime);
         _cableSystem?.ClampToTetherLength();
+    }
+
+    private void HandleSuitedUnderwaterMovement()
+    {
+        var moveInput = _moveAction?.ReadValue<Vector2>() ?? Vector2.zero;
+        Vector3 move  = transform.TransformDirection(new Vector3(moveInput.x, 0f, moveInput.y));
+
+        // Floor walking: snap grounded velocity and allow a small hop
+        if (_cc.isGrounded)
+        {
+            if (_verticalVelocity < 0f) _verticalVelocity = -2f;
+            if (_jumpAction != null && _jumpAction.WasPressedThisFrame())
+                _verticalVelocity = bootHopForce;
+        }
+
+        // Pure gravity — no buoyancy, no drag
+        _verticalVelocity += gravity * Time.deltaTime;
+        _verticalVelocity  = Mathf.Max(_verticalVelocity, -bootSinkSpeed);
+
+        _cc.Move((move * bootWalkSpeed + Vector3.up * _verticalVelocity) * Time.deltaTime);
+        _cableSystem?.ClampToTetherLength();
+
+        // Boot kick-off: hold Q for bootKickHoldTime seconds
+        if (_dropAction != null && _dropAction.IsPressed())
+        {
+            _bootKickTimer += Time.deltaTime;
+            if (_bootKickTimer >= bootKickHoldTime)
+                KickOffBoots();
+        }
+        else
+        {
+            _bootKickTimer = 0f;
+        }
+    }
+
+    private void KickOffBoots()
+    {
+        _hasBoots      = false;
+        _bootKickTimer = 0f;
+        _verticalVelocity = swimVerticalSpeed;  // initial upward push when freed
+        Debug.Log("[Player] Boots kicked off → free swimming");
     }
 
     private void ScanForInteractables()
@@ -328,21 +381,26 @@ public class PlayerController : NetworkBehaviour
         _state = PlayerState.OnDeck;
     }
 
-    public void EquipSuit(DivingSuitRack rack)
+    public void EquipSuit(DivingSuitRack rack, bool hasBoots = true)
     {
-        _oxygen = 0f;   // line is empty until pumped
+        // Scale oxygen proportionally so the HUD bar doesn't jump when capacity changes
+        // (maxBreathSeconds → maxSuitBuffer). E.g. 30/30 = 100% stays 60/60 = 100%.
+        _oxygen   = (_oxygen / maxBreathSeconds) * maxSuitBuffer;
+        _hasBoots = hasBoots;
         _suitRack = rack;
         _state = PlayerState.WearingSuit;
         if (IsOwner) _networkWearingSuit.Value = true;
-        _cableSystem?.SetAnchor(rack.transform.position);
+        _cableSystem?.ActivateCables();
         Debug.Log("[Player] Suit equipped → WearingSuit (slower movement)");
     }
 
     public void UnequipSuit()
     {
         if (_state != PlayerState.WearingSuit) return;
+        _hasBoots      = false;
+        _bootKickTimer = 0f;
         SetPumpFlowRate(0f);
-        _suitRack?.ReturnSuit();
+        _suitRack?.ReturnSuit(_hasBoots);
         _suitRack = null;
         _state = PlayerState.OnDeck;
         _oxygen = maxBreathSeconds;   // back to normal breath above water
@@ -382,9 +440,9 @@ public class PlayerController : NetworkBehaviour
             }
             else
             {
-                // Above water with suit: pump pre-fills the line buffer
-                if (_pumpFlowRate > 0f)
-                    _oxygen = Mathf.Min(_oxygen + _pumpFlowRate * Time.deltaTime, maxSuitBuffer);
+                // Above water with suit: drain at base rate; pump counters the drain
+                float net = _pumpFlowRate - 1f;
+                _oxygen = Mathf.Clamp(_oxygen + net * Time.deltaTime, 0f, maxSuitBuffer);
             }
         }
         else
@@ -418,6 +476,12 @@ public class PlayerController : NetworkBehaviour
     public float OxygenCapacity => (_state == PlayerState.WearingSuit
                                  || _preDiveState == PlayerState.WearingSuit)
                                  ? maxSuitBuffer : maxBreathSeconds;
+    public bool  HasBoots         => _hasBoots;
+    public bool  IsUnderwaterWithSuit => _state == PlayerState.Underwater
+                                      && _preDiveState == PlayerState.WearingSuit;
+    /// <summary>0–1 while holding Q to kick boots off; -1 when not applicable.</summary>
+    public float BootKickProgress => (_hasBoots && IsUnderwaterWithSuit)
+        ? _bootKickTimer / bootKickHoldTime : -1f;
 
     // ── Pump RPCs ─────────────────────────────────────────────────────────────
     // Operator calls SendPumpFlowServerRpc on their OWN PlayerController.
