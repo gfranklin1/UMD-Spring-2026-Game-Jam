@@ -318,6 +318,7 @@ GameObject:
   - component: {fileID: 3031553766053800057}
   - component: {fileID: 8910801817076136560}
   - component: {fileID: 1050611336769317445}
+  - component: {fileID: 4033270893151352343}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -461,11 +462,13 @@ MonoBehaviour:
   jumpForce: 6
   surfaceFloatDepth: 1.2
   buoyancySpring: 6
+  speedChangeRate: 15
   maxHealth: 100
   maxBreathSeconds: 30
   maxSuitBuffer: 60
-  oxygenRefillRate: 3
   drownDamageRate: 20
+  depthDrainMultiplier: 0.05
+  movementDrainMultiplier: 0.08
   oceanWaves: {fileID: 0}
   cameraRoot: {fileID: 6831408076068373272}
   bodyRenderer: {fileID: 2209665961639297949}
@@ -516,6 +519,27 @@ MonoBehaviour:
   _hudCanvas: {fileID: 7883319742559072904}
   _healthFillRT: {fileID: 8671310195078983582}
   _oxygenFillRT: {fileID: 6730308145939610584}
+--- !u!114 &4033270893151352343
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5899794769293236169}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da05eee1734ef7440858be32d25f4a6e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DiveCableSystem
+  ShowTopMostFoldoutHeaderGroup: 1
+  maxCableLength: 30
+  segmentCount: 10
+  maxSag: 3
+  cableSpacing: 0.15
+  airCableMaterial: {fileID: 2100000, guid: 541b4f38a3abb104abee2871c8d7e0ee, type: 2}
+  airCableWidth: 0.08
+  commRopeMaterial: {fileID: 2100000, guid: e50ac79793b60834baf53c1777f3f66e, type: 2}
+  commRopeWidth: 0.04
 --- !u!1 &6340228109982231904
 GameObject:
   m_ObjectHideFlags: 0

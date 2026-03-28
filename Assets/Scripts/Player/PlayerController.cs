@@ -34,6 +34,7 @@ public class PlayerController : NetworkBehaviour
     [SerializeField] private PlayerInput playerInput;
 
     private CharacterController _cc;
+    private DiveCableSystem _cableSystem;
     private PlayerState _state = PlayerState.OnDeck;
     private PlayerState _preDiveState = PlayerState.OnDeck;
     private float _verticalVelocity;
@@ -58,7 +59,11 @@ public class PlayerController : NetworkBehaviour
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Owner);
 
-    private void Awake() => _cc = GetComponent<CharacterController>();
+    private void Awake()
+    {
+        _cc           = GetComponent<CharacterController>();
+        _cableSystem  = GetComponent<DiveCableSystem>();
+    }
 
     private void Start()
     {
@@ -188,6 +193,7 @@ public class PlayerController : NetworkBehaviour
         _currentSpeed = Mathf.MoveTowards(_currentSpeed, targetSpeed, speedChangeRate * Time.deltaTime);
         Vector3 move = transform.TransformDirection(new Vector3(moveInput.x, 0f, moveInput.y));
         _cc.Move((move * _currentSpeed + Vector3.up * _verticalVelocity) * Time.deltaTime);
+        if (_state == PlayerState.WearingSuit) _cableSystem?.ClampToTetherLength();
     }
 
     private void HandleUnderwaterMovement()
@@ -224,6 +230,7 @@ public class PlayerController : NetworkBehaviour
         }
 
         _cc.Move((horizontal + Vector3.up * _verticalVelocity) * Time.deltaTime);
+        _cableSystem?.ClampToTetherLength();
     }
 
     private void ScanForInteractables()
@@ -327,6 +334,7 @@ public class PlayerController : NetworkBehaviour
         _suitRack = rack;
         _state = PlayerState.WearingSuit;
         if (IsOwner) _networkWearingSuit.Value = true;
+        _cableSystem?.SetAnchor(rack.transform.position);
         Debug.Log("[Player] Suit equipped → WearingSuit (slower movement)");
     }
 
@@ -339,6 +347,7 @@ public class PlayerController : NetworkBehaviour
         _state = PlayerState.OnDeck;
         _oxygen = maxBreathSeconds;   // back to normal breath above water
         if (IsOwner) _networkWearingSuit.Value = false;
+        _cableSystem?.ClearAnchor();
         Debug.Log("[Player] Suit removed → OnDeck");
     }
 
