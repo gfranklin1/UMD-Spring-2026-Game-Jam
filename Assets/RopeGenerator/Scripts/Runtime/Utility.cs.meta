@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 24caa3a6cfe0b45b798edff3516336fd
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 316945
+  packageName: Rope-Generator
+  packageVersion: 1.0.0
+  assetPath: Assets/ir.soor.rope-generator/Scripts/Runtime/Utility.cs
+  uploadId: 768698

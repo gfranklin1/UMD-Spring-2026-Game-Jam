@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 252a3f6815415486ba4bf47c1fcb3752
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 316945
+  packageName: Rope-Generator
+  packageVersion: 1.0.0
+  assetPath: Assets/ir.soor.rope-generator/Documentation/Document.md
+  uploadId: 768698

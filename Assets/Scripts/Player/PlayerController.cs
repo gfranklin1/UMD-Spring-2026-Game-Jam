@@ -43,6 +43,8 @@ public class PlayerController : NetworkBehaviour
     private DiveCableSystem _cableSystem;
     private PlayerState _state = PlayerState.OnDeck;
     private PlayerState _preDiveState = PlayerState.OnDeck;
+    private float _holdStartTime = -1f;
+    private float _holdDuration  = 0f;
     private float _verticalVelocity;
     private float _currentWaveHeight;
     private InputAction _moveAction;
@@ -51,12 +53,17 @@ public class PlayerController : NetworkBehaviour
     private InputAction _interactAction;
     private InputAction _sprintAction;
     private InputAction _dropAction;
+    private InputAction _removeBootsAction;
+    private InputAction _scrollInventoryAction;
     private bool  _hasBoots      = false;
     private float _bootKickTimer = 0f;
     private IInteractable _nearestInteractable;
     private IInteractable _currentStation;
     private DivingSuitRack _suitRack;
-    private const float InteractRange = 2.5f;
+    private PlayerInventory _inventory;
+    private LootPickup _nearestLoot;
+    private const float InteractRange   = 2.5f;
+    private const float LootPickupRange = 2f;
     private float _health;
     private float _oxygen;
     private float _currentSpeed;
@@ -72,6 +79,7 @@ public class PlayerController : NetworkBehaviour
     {
         _cc           = GetComponent<CharacterController>();
         _cableSystem  = GetComponent<DiveCableSystem>();
+        _inventory    = GetComponent<PlayerInventory>();
     }
 
     private void Start()
@@ -94,7 +102,9 @@ public class PlayerController : NetworkBehaviour
                 _crouchAction = playerInput.actions["Crouch"];
                 _interactAction = playerInput.actions["Interact"];
                 _sprintAction   = playerInput.actions["Sprint"];
-                _dropAction     = playerInput.actions["Drop"];
+                _dropAction        = playerInput.actions["Drop"];
+                _removeBootsAction     = playerInput.actions["RemoveBoots"];
+                _scrollInventoryAction = playerInput.actions["ScrollInventory"];
                 _interactAction.started   += OnInteractStarted;
                 _interactAction.performed += OnInteractHeld;
                 _interactAction.canceled  += OnInteractCanceled;
@@ -138,6 +148,7 @@ public class PlayerController : NetworkBehaviour
     private void Update()
     {
         ScanForInteractables();
+        ScanForLoot();
         switch (_state)
         {
             case PlayerState.OnDeck:
@@ -157,6 +168,37 @@ public class PlayerController : NetworkBehaviour
         // Run after UpdateWaterState so _state reflects this frame
         UpdateOxygen();
         UpdateHealth();
+
+        // Inventory: drop selected item (Q)
+        if (_dropAction != null && _dropAction.WasPressedThisFrame() && _state != PlayerState.AtStation)
+        {
+            var item = _inventory?.RemoveSelected();
+            if (item != null && item.worldPrefab != null)
+            {
+                Vector3 dropPos = transform.position + transform.forward * 1f + Vector3.up * 0.5f;
+                Instantiate(item.worldPrefab, dropPos, Quaternion.identity);
+            }
+        }
+
+        // Inventory: scroll wheel cycles slots, number keys 1-5 select directly
+        if (_scrollInventoryAction != null && _inventory != null)
+        {
+            float scroll = _scrollInventoryAction.ReadValue<float>();
+            if (scroll > 0f) _inventory.SelectPrevious();
+            else if (scroll < 0f) _inventory.SelectNext();
+        }
+        if (_inventory != null)
+        {
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            if (kb != null)
+            {
+                if (kb.digit1Key.wasPressedThisFrame) _inventory.SelectSlot(0);
+                if (kb.digit2Key.wasPressedThisFrame) _inventory.SelectSlot(1);
+                if (kb.digit3Key.wasPressedThisFrame) _inventory.SelectSlot(2);
+                if (kb.digit4Key.wasPressedThisFrame) _inventory.SelectSlot(3);
+                if (kb.digit5Key.wasPressedThisFrame) _inventory.SelectSlot(4);
+            }
+        }
     }
 
     private void UpdateWaterState()
@@ -265,8 +307,8 @@ public class PlayerController : NetworkBehaviour
         _cc.Move((move * bootWalkSpeed + Vector3.up * _verticalVelocity) * Time.deltaTime);
         _cableSystem?.ClampToTetherLength();
 
-        // Boot kick-off: hold Q for bootKickHoldTime seconds
-        if (_dropAction != null && _dropAction.IsPressed())
+        // Boot kick-off: hold G for bootKickHoldTime seconds
+        if (_removeBootsAction != null && _removeBootsAction.IsPressed())
         {
             _bootKickTimer += Time.deltaTime;
             if (_bootKickTimer >= bootKickHoldTime)
@@ -306,11 +348,30 @@ public class PlayerController : NetworkBehaviour
         if (nearest != _nearestInteractable)
         {
             _nearestInteractable = nearest;
+            _holdStartTime = -1f;   // cancel progress when target changes
             if (nearest != null)
                 Debug.Log($"[Player] In range: {nearest.GetPromptText()}");
             else
                 Debug.Log("[Player] Left interact range");
         }
+    }
+
+    private void ScanForLoot()
+    {
+        // Works in ALL states except AtStation — can pick up loot underwater
+        if (_state == PlayerState.AtStation) { _nearestLoot = null; return; }
+
+        Collider[] hits = Physics.OverlapSphere(transform.position, LootPickupRange);
+        LootPickup nearest = null;
+        float nearestDist = float.MaxValue;
+        foreach (var hit in hits)
+        {
+            var loot = hit.GetComponentInParent<LootPickup>();
+            if (loot == null) continue;
+            float dist = (hit.transform.position - transform.position).sqrMagnitude;
+            if (dist < nearestDist) { nearestDist = dist; nearest = loot; }
+        }
+        _nearestLoot = nearest;
     }
 
     private void HandleAtStationState()
@@ -339,8 +400,30 @@ public class PlayerController : NetworkBehaviour
 
     private void OnInteractStarted(InputAction.CallbackContext ctx)
     {
+        // Loot pickup — quick tap E (works in any non-station state)
+        if (_nearestLoot != null && _inventory != null)
+        {
+            if (_inventory.TryAddItem(_nearestLoot.Item))
+            {
+                Debug.Log($"[Player] Picked up {_nearestLoot.Item.itemName}");
+                Destroy(_nearestLoot.gameObject);
+                _nearestLoot = null;
+                return;
+            }
+            // Inventory full — fall through
+        }
+
         Debug.Log($"[Player] Interact STARTED | state={_state} | nearest={_nearestInteractable?.GetPromptText() ?? "none"}");
         if (_state == PlayerState.AtStation) { ReleaseFromStation(); return; }
+
+        // Track hold progress for hold-type interactables (display only — rack coroutine is authority)
+        if (_nearestInteractable != null && _nearestInteractable.HoldDuration > 0f)
+        {
+            _holdStartTime = Time.time;
+            _holdDuration  = _nearestInteractable.HoldDuration;
+        }
+        else { _holdStartTime = -1f; }
+
         _nearestInteractable?.OnInteractStart(this);
     }
 
@@ -352,6 +435,7 @@ public class PlayerController : NetworkBehaviour
 
     private void OnInteractCanceled(InputAction.CallbackContext ctx)
     {
+        _holdStartTime = -1f;
         Debug.Log("[Player] Interact CANCELED");
         _nearestInteractable?.OnInteractCancel(this);
     }
@@ -383,6 +467,7 @@ public class PlayerController : NetworkBehaviour
 
     public void EquipSuit(DivingSuitRack rack, bool hasBoots = true)
     {
+        _holdStartTime = -1f;
         // Scale oxygen proportionally so the HUD bar doesn't jump when capacity changes
         // (maxBreathSeconds → maxSuitBuffer). E.g. 30/30 = 100% stays 60/60 = 100%.
         _oxygen   = (_oxygen / maxBreathSeconds) * maxSuitBuffer;
@@ -396,6 +481,7 @@ public class PlayerController : NetworkBehaviour
 
     public void UnequipSuit()
     {
+        _holdStartTime = -1f;
         if (_state != PlayerState.WearingSuit) return;
         _hasBoots      = false;
         _bootKickTimer = 0f;
@@ -470,13 +556,25 @@ public class PlayerController : NetworkBehaviour
     }
 
     // HUD read-only accessors
+    public IInteractable NearestInteractable => _nearestInteractable;
+    /// <summary>0–1 while holding E on a hold-type interactable; -1 when not applicable.</summary>
+    public float InteractHoldProgress
+    {
+        get
+        {
+            if (_holdStartTime < 0f || _holdDuration <= 0f) return -1f;
+            return Mathf.Clamp01((Time.time - _holdStartTime) / _holdDuration);
+        }
+    }
     public float Health        => _health;
     public float MaxHealth     => maxHealth;
     public float Oxygen        => _oxygen;
     public float OxygenCapacity => (_state == PlayerState.WearingSuit
                                  || _preDiveState == PlayerState.WearingSuit)
                                  ? maxSuitBuffer : maxBreathSeconds;
+    public LootPickup NearestLoot => _nearestLoot;
     public bool  HasBoots         => _hasBoots;
+    public bool  IsUnderwater     => _state == PlayerState.Underwater;
     public bool  IsUnderwaterWithSuit => _state == PlayerState.Underwater
                                       && _preDiveState == PlayerState.WearingSuit;
     /// <summary>0–1 while holding Q to kick boots off; -1 when not applicable.</summary>
@@ -520,5 +618,51 @@ public class PlayerController : NetworkBehaviour
                 return;
             }
         }
+    }
+
+    // ── Suit Equip/Unequip RPCs ───────────────────────────────────────────────
+    // DivingSuitRack calls these on the PlayerController after the hold timer fires.
+    // The server validates exclusivity before confirming to the owner.
+
+    [ServerRpc]
+    public void RequestEquipSuitServerRpc(ulong rackNetworkObjectId)
+    {
+        if (!NetworkManager.SpawnManager.SpawnedObjects
+                .TryGetValue(rackNetworkObjectId, out var rackObj)) return;
+        var rack = rackObj.GetComponent<DivingSuitRack>();
+        if (rack == null || !rack.NetworkSuitAvailable) return;
+
+        rack.ServerTakeSuit(NetworkObject.NetworkObjectId);
+        ConfirmEquipSuitClientRpc(rackNetworkObjectId, rack.NetworkSuitHasBoots);
+    }
+
+    [ClientRpc]
+    private void ConfirmEquipSuitClientRpc(ulong rackNetworkObjectId, bool hasBoots)
+    {
+        if (!IsOwner) return;
+        if (!NetworkManager.SpawnManager.SpawnedObjects
+                .TryGetValue(rackNetworkObjectId, out var rackObj)) return;
+        var rack = rackObj.GetComponent<DivingSuitRack>();
+        if (rack != null) EquipSuit(rack, hasBoots);
+    }
+
+    [ServerRpc]
+    public void RequestUnequipSuitServerRpc(ulong rackNetworkObjectId)
+    {
+        if (!NetworkManager.SpawnManager.SpawnedObjects
+                .TryGetValue(rackNetworkObjectId, out var rackObj)) return;
+        var rack = rackObj.GetComponent<DivingSuitRack>();
+        if (rack == null) return;
+        if (rack.NetworkSuitWearerObjId != NetworkObject.NetworkObjectId) return;
+
+        rack.ServerReturnSuit(false);   // boots always gone on unequip (matches existing offline behavior)
+        ConfirmUnequipSuitClientRpc();
+    }
+
+    [ClientRpc]
+    private void ConfirmUnequipSuitClientRpc()
+    {
+        if (!IsOwner) return;
+        UnequipSuit();
     }
 }

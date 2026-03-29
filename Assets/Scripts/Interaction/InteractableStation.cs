@@ -7,6 +7,7 @@ public class InteractableStation : MonoBehaviour, IInteractable
     private PlayerController _occupant;
 
     public string GetPromptText() => _occupant == null ? $"[E] Use {stationName}" : "In use";
+    public float  HoldDuration   => 0f;
 
     public void OnInteractStart(PlayerController player)
     {

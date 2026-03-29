@@ -25,6 +25,9 @@ public class AirPumpStation : MonoBehaviour, IInteractable
         ? _hosePort.position
         : transform.position + transform.up * 0.5f;
 
+    /// <summary>Transform at the hose port (used as rope start anchor).</summary>
+    public Transform HoseTransform => _hosePort != null ? _hosePort : transform;
+
     private PlayerController _operator;
     private float _pumpMomentum;
 
@@ -34,6 +37,7 @@ public class AirPumpStation : MonoBehaviour, IInteractable
     // ── IInteractable ─────────────────────────────────────────────────────────
 
     public string GetPromptText() => _operator == null ? $"[E] Use {stationName}" : "In use";
+    public float  HoldDuration   => 0f;
 
     public void OnInteractStart(PlayerController player)
     {

@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: b359f383326d240209632f7e445ff00a
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 316945
+  packageName: Rope-Generator
+  packageVersion: 1.0.0
+  assetPath: Assets/ir.soor.rope-generator/Scripts/Editor/RopePhysicsSimulator.cs
+  uploadId: 768698

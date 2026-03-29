@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: acee958fc715f431d9a524e94e200889
+AssemblyDefinitionImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 316945
+  packageName: Rope-Generator
+  packageVersion: 1.0.0
+  assetPath: Assets/ir.soor.rope-generator/Scripts/Editor/Soor.RopeGenerator.Editor.asmdef
+  uploadId: 768698
