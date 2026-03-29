@@ -63,7 +63,12 @@ public class PlayerController : NetworkBehaviour
     private DivingSuitRack _suitRack;
     private PlayerInventory _inventory;
     private LootPickup _nearestLoot;
+    private StorageChest _openChest;
     private const float InteractRange = 2.5f;
+
+    public StorageChest CurrentOpenChest => _openChest;
+    public event System.Action<StorageChest> OnChestOpened;
+    public event System.Action               OnChestClosed;
     private float _health;
     private float _oxygen;
     private float _currentSpeed;
@@ -147,6 +152,15 @@ public class PlayerController : NetworkBehaviour
 
     private void Update()
     {
+        // Chest UI open — freeze all movement/interaction; only check for close keys
+        if (_openChest != null)
+        {
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            if (kb != null && kb.escapeKey.wasPressedThisFrame)
+                CloseChest();
+            return;
+        }
+
         ScanForInteractables();
         ScanForLoot();
         switch (_state)
@@ -405,6 +419,9 @@ public class PlayerController : NetworkBehaviour
 
     private void OnInteractStarted(InputAction.CallbackContext ctx)
     {
+        // Close chest UI on second E press
+        if (_openChest != null) { CloseChest(); return; }
+
         // Loot pickup — quick tap E (works in any non-station state)
         if (_nearestLoot != null && _inventory != null && !_inventory.IsFull)
         {
@@ -585,6 +602,19 @@ public class PlayerController : NetworkBehaviour
                                  ? maxSuitBuffer : maxBreathSeconds;
     public LootPickup NearestLoot => _nearestLoot;
     public bool  HasBoots         => _hasBoots;
+
+    public void OpenChest(StorageChest chest)
+    {
+        _openChest = chest;
+        _nearestInteractable = null;  // hide interaction prompt while chest UI is open
+        OnChestOpened?.Invoke(chest);
+    }
+
+    public void CloseChest()
+    {
+        _openChest = null;
+        OnChestClosed?.Invoke();
+    }
     public bool  IsUnderwater     => _state == PlayerState.Underwater;
     public bool  IsUnderwaterWithSuit => _state == PlayerState.Underwater
                                       && _preDiveState == PlayerState.WearingSuit;
@@ -686,7 +716,13 @@ public class PlayerController : NetworkBehaviour
         var loot = netObj.GetComponent<LootPickup>();
         if (loot == null) return;
         string itemId = loot.ItemId;
-        netObj.Despawn(true);   // destroys on all clients
+
+        // Use Despawn(false) for in-scene objects so late-joining clients
+        // don't see ghost items. OnNetworkDespawn hides renderers/colliders.
+        bool isSceneObject = netObj.IsSceneObject.HasValue && netObj.IsSceneObject.Value;
+        netObj.Despawn(!isSceneObject);
+        if (isSceneObject) netObj.gameObject.SetActive(false);
+
         var clientParams = new ClientRpcParams
             { Send = new ClientRpcSendParams { TargetClientIds = new[] { rpc.Receive.SenderClientId } } };
         ConfirmPickupClientRpc(itemId, clientParams);

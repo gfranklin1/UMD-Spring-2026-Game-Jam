@@ -70,6 +70,13 @@ public class PlayerInventory : MonoBehaviour
         OnInventoryChanged?.Invoke();
     }
 
+    public void RemoveAt(int index)
+    {
+        if (index < 0 || index >= _slots.Length) return;
+        _slots[index] = null;
+        OnInventoryChanged?.Invoke();
+    }
+
     public int TotalGoldValue()
     {
         int total = 0;

@@ -10,6 +10,26 @@ public class LootPickup : NetworkBehaviour
     public ItemData Item   => itemData;
     public string   ItemId => itemId;
 
+    /// <summary>
+    /// Hide until network-spawned so late-joining clients don't see
+    /// loot that was already picked up (despawned server-side).
+    /// </summary>
+    public override void OnNetworkSpawn()
+    {
+        SetVisible(true);
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        SetVisible(false);
+    }
+
+    private void SetVisible(bool vis)
+    {
+        foreach (var r in GetComponentsInChildren<Renderer>()) r.enabled = vis;
+        foreach (var c in GetComponentsInChildren<Collider>())  c.enabled = vis;
+    }
+
     public string GetPromptText()
     {
         if (itemData == null) return "[E] Pick up";
