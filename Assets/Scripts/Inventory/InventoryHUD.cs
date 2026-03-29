@@ -33,8 +33,14 @@ public class InventoryHUD : MonoBehaviour
         _slotFlashTimers = new float[slotFrames.Length];
         _prevSlots       = new ItemData[inventory != null ? inventory.MaxSlots : slotFrames.Length];
 
+        // Force layout calculation so slot positions are valid before we snap the highlight
+        Canvas.ForceUpdateCanvases();
+
         if (selectionHighlight != null && slotFrames.Length > 0)
+        {
             _highlightTargetPos = slotFrames[inventory != null ? inventory.SelectedIndex : 0].position;
+            selectionHighlight.rectTransform.position = _highlightTargetPos; // snap — no lerp on first frame
+        }
 
         if (inventory != null)
             inventory.OnInventoryChanged += Refresh;
@@ -128,9 +134,7 @@ public class InventoryHUD : MonoBehaviour
         if (itemNameLabel != null)
             itemNameLabel.text = selected != null ? selected.itemName : "";
 
-        // Gold total
-        if (goldTotalLabel != null)
-            goldTotalLabel.text = $"Gold: {inventory.TotalGoldValue()}";
+        // Gold total label intentionally not updated here — gold comes from a separate system
 
         // Drop prompt visibility
         if (dropPromptLabel != null)

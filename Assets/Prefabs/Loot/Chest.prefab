@@ -10,6 +10,9 @@ GameObject:
   m_Component:
   - component: {fileID: 2317688170054271008}
   - component: {fileID: 7349200007437401132}
+  - component: {fileID: -5316525110719207001}
+  - component: {fileID: -7105180850265196921}
+  - component: {fileID: -6080239656029395211}
   m_Layer: 0
   m_Name: Chest
   m_TagString: Untagged
@@ -41,6 +44,67 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1689929891036181201}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &-5316525110719207001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1689929891036181201}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+  GlobalObjectIdHash: 257483592
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 1
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
+--- !u!65 &-7105180850265196921
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1689929891036181201}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &-6080239656029395211
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1689929891036181201}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23684a9ba557b1c40942446763a726e7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LootPickup
+  ShowTopMostFoldoutHeaderGroup: 1
+  itemData: {fileID: 11400000, guid: fe40d7f25dd6638439987c1cc7f82dc7, type: 2}
+  itemId: Chest
 --- !u!1001 &6319286953560486742
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -147,4 +211,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 23684a9ba557b1c40942446763a726e7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LootPickup
+  ShowTopMostFoldoutHeaderGroup: 1
   itemData: {fileID: 11400000, guid: fe40d7f25dd6638439987c1cc7f82dc7, type: 2}
+  itemId: 

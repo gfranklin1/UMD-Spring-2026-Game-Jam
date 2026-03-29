@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cbca3592970a954499fac05d59c07a47, type: 3}
+  m_Name: LootRegistry
+  m_EditorClassIdentifier: Assembly-CSharp::LootRegistry
+  items:
+  - {fileID: 11400000, guid: 8b9397cacdc48c647bf00c2f890a52bc, type: 2}
+  - {fileID: 11400000, guid: e629bd6061701bd47b9135c14861380f, type: 2}
+  - {fileID: 11400000, guid: fe40d7f25dd6638439987c1cc7f82dc7, type: 2}
+  - {fileID: 11400000, guid: 11b872b54af84154c88ded6ca89fe2be, type: 2}
+  - {fileID: 11400000, guid: 3ee6dfdffde6a5343be69bda06a1035b, type: 2}

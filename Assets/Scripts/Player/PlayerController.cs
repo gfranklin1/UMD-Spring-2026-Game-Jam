@@ -38,6 +38,7 @@ public class PlayerController : NetworkBehaviour
     [SerializeField] private Transform cameraRoot;
     [SerializeField] private Renderer bodyRenderer;
     [SerializeField] private PlayerInput playerInput;
+    [SerializeField] private LootRegistry _lootRegistry;
 
     private CharacterController _cc;
     private DiveCableSystem _cableSystem;
@@ -62,8 +63,7 @@ public class PlayerController : NetworkBehaviour
     private DivingSuitRack _suitRack;
     private PlayerInventory _inventory;
     private LootPickup _nearestLoot;
-    private const float InteractRange   = 2.5f;
-    private const float LootPickupRange = 2f;
+    private const float InteractRange = 2.5f;
     private float _health;
     private float _oxygen;
     private float _currentSpeed;
@@ -172,11 +172,18 @@ public class PlayerController : NetworkBehaviour
         // Inventory: drop selected item (Q)
         if (_dropAction != null && _dropAction.WasPressedThisFrame() && _state != PlayerState.AtStation)
         {
-            var item = _inventory?.RemoveSelected();
-            if (item != null && item.worldPrefab != null)
+            Vector3 dropPos = transform.position + transform.forward + Vector3.up * 0.5f;
+            bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+            if (networked)
             {
-                Vector3 dropPos = transform.position + transform.forward * 1f + Vector3.up * 0.5f;
-                Instantiate(item.worldPrefab, dropPos, Quaternion.identity);
+                var item = _inventory?.Slots[_inventory.SelectedIndex];
+                if (item != null) DropItemServerRpc(item.name, dropPos);
+            }
+            else
+            {
+                var item = _inventory?.RemoveSelected();
+                if (item?.worldPrefab != null)
+                    Instantiate(item.worldPrefab, dropPos, Quaternion.identity);
             }
         }
 
@@ -361,17 +368,15 @@ public class PlayerController : NetworkBehaviour
         // Works in ALL states except AtStation — can pick up loot underwater
         if (_state == PlayerState.AtStation) { _nearestLoot = null; return; }
 
-        Collider[] hits = Physics.OverlapSphere(transform.position, LootPickupRange);
-        LootPickup nearest = null;
-        float nearestDist = float.MaxValue;
-        foreach (var hit in hits)
-        {
-            var loot = hit.GetComponentInParent<LootPickup>();
-            if (loot == null) continue;
-            float dist = (hit.transform.position - transform.position).sqrMagnitude;
-            if (dist < nearestDist) { nearestDist = dist; nearest = loot; }
-        }
-        _nearestLoot = nearest;
+        // Spherecast along camera look direction so the player picks up what they aim at
+        const float CastRadius = 0.4f;
+        const float CastRange  = 4f;
+        Ray ray = new Ray(cameraRoot.position, cameraRoot.forward);
+
+        if (Physics.SphereCast(ray, CastRadius, out RaycastHit hit, CastRange))
+            _nearestLoot = hit.collider.GetComponentInParent<LootPickup>();
+        else
+            _nearestLoot = null;
     }
 
     private void HandleAtStationState()
@@ -401,16 +406,22 @@ public class PlayerController : NetworkBehaviour
     private void OnInteractStarted(InputAction.CallbackContext ctx)
     {
         // Loot pickup — quick tap E (works in any non-station state)
-        if (_nearestLoot != null && _inventory != null)
+        if (_nearestLoot != null && _inventory != null && !_inventory.IsFull)
         {
-            if (_inventory.TryAddItem(_nearestLoot.Item))
+            bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+            if (networked)
+            {
+                var netObj = _nearestLoot.GetComponent<NetworkObject>();
+                if (netObj != null) PickupLootServerRpc(netObj.NetworkObjectId);
+            }
+            else
             {
                 Debug.Log($"[Player] Picked up {_nearestLoot.Item.itemName}");
+                _inventory.TryAddItem(_nearestLoot.Item);
                 Destroy(_nearestLoot.gameObject);
                 _nearestLoot = null;
-                return;
             }
-            // Inventory full — fall through
+            return;
         }
 
         Debug.Log($"[Player] Interact STARTED | state={_state} | nearest={_nearestInteractable?.GetPromptText() ?? "none"}");
@@ -664,5 +675,46 @@ public class PlayerController : NetworkBehaviour
     {
         if (!IsOwner) return;
         UnequipSuit();
+    }
+
+    // ── Loot Pickup/Drop RPCs ─────────────────────────────────────────────────
+
+    [ServerRpc]
+    private void PickupLootServerRpc(ulong lootNetObjId, ServerRpcParams rpc = default)
+    {
+        if (!NetworkManager.SpawnManager.SpawnedObjects.TryGetValue(lootNetObjId, out var netObj)) return;
+        var loot = netObj.GetComponent<LootPickup>();
+        if (loot == null) return;
+        string itemId = loot.ItemId;
+        netObj.Despawn(true);   // destroys on all clients
+        var clientParams = new ClientRpcParams
+            { Send = new ClientRpcSendParams { TargetClientIds = new[] { rpc.Receive.SenderClientId } } };
+        ConfirmPickupClientRpc(itemId, clientParams);
+    }
+
+    [ClientRpc]
+    private void ConfirmPickupClientRpc(string itemId, ClientRpcParams clientParams = default)
+    {
+        var item = _lootRegistry?.Find(itemId);
+        if (item != null) _inventory?.TryAddItem(item);
+        _nearestLoot = null;
+    }
+
+    [ServerRpc]
+    private void DropItemServerRpc(string itemId, Vector3 dropPos, ServerRpcParams rpc = default)
+    {
+        var item = _lootRegistry?.Find(itemId);
+        if (item?.worldPrefab == null) return;
+        var go = Instantiate(item.worldPrefab, dropPos, Quaternion.identity);
+        go.GetComponent<NetworkObject>()?.Spawn(true);
+        var clientParams = new ClientRpcParams
+            { Send = new ClientRpcSendParams { TargetClientIds = new[] { rpc.Receive.SenderClientId } } };
+        ConfirmDropClientRpc(clientParams);
+    }
+
+    [ClientRpc]
+    private void ConfirmDropClientRpc(ClientRpcParams clientParams = default)
+    {
+        _inventory?.RemoveSelected();
     }
 }
