@@ -142,10 +142,17 @@ public class QuotaManager : NetworkBehaviour
         _gameOverReason.Value  = 0;
         GoldTracker.Instance?.ResetGold();
         RespawnLoot();
+        ResetSuitRacks();
         _gameOver.Value = false; // fires OnGameReset on all clients via OnValueChanged
     }
 
     // ── Loot Respawn ─────────────────────────────────────────────────────────
+
+    private void ResetSuitRacks()
+    {
+        foreach (var rack in FindObjectsByType<DivingSuitRack>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            rack.ServerForceReset();
+    }
 
     private void RespawnLoot()
     {

@@ -754,6 +754,29 @@ public class PlayerController : NetworkBehaviour
         UnequipSuit();
     }
 
+    /// <summary>Broadcast by DivingSuitRack.ServerForceReset on game reset. Skips ReturnSuit — rack already reset.</summary>
+    [ClientRpc]
+    public void ForceUnequipSuitClientRpc()
+    {
+        if (!IsOwner) return;
+        ForceUnequipSuitLocal();
+    }
+
+    /// <summary>Shared implementation used by both the RPC and the offline reset path.</summary>
+    public void ForceUnequipSuitLocal()
+    {
+        if (_state != PlayerState.WearingSuit) return;
+        _holdStartTime = -1f;
+        _hasBoots      = false;
+        _bootKickTimer = 0f;
+        SetPumpFlowRate(0f);
+        _suitRack = null;
+        _state    = PlayerState.OnDeck;
+        _oxygen   = maxBreathSeconds;
+        if (IsOwner) _networkWearingSuit.Value = false;
+        _cableSystem?.ClearAnchor();
+    }
+
     [ServerRpc]
     private void ReportDeathServerRpc()
     {

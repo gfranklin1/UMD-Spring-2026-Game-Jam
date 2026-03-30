@@ -129,6 +129,43 @@ public class DivingSuitRack : NetworkBehaviour, IInteractable
         _localSuitWearer    = null;
     }
 
+    // ─── Game Reset ───────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Called by QuotaManager.ResetGame on the server. Returns the suit to the rack
+    /// and force-unequips whoever is wearing it.
+    /// </summary>
+    public void ServerForceReset()
+    {
+        CancelHold();
+
+        bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+        if (networked)
+        {
+            if (!IsServer) return;
+
+            ulong wearerId = _networkSuitWearerObjectId.Value;
+
+            _networkSuitAvailable.Value      = true;
+            _networkSuitWearerObjectId.Value = 0UL;
+            _networkSuitHasBoots.Value       = true;
+
+            if (wearerId != 0UL &&
+                NetworkManager.SpawnManager.SpawnedObjects.TryGetValue(wearerId, out var obj))
+            {
+                obj.GetComponent<PlayerController>()?.ForceUnequipSuitClientRpc();
+            }
+        }
+        else
+        {
+            var wearer = _localSuitWearer;
+            _localSuitAvailable = true;
+            _localSuitHasBoots  = true;
+            _localSuitWearer    = null;
+            wearer?.ForceUnequipSuitLocal();
+        }
+    }
+
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
     private void CancelHold()
