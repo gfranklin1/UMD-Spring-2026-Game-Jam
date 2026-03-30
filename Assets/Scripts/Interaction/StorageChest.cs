@@ -12,6 +12,7 @@ public class StorageChest : NetworkBehaviour, IInteractable
 {
     [SerializeField] private int          maxSlots = 12;
     [SerializeField] private LootRegistry _registry;
+    [SerializeField] private Animator     _animator;
 
     // Server-authoritative slot list (itemId per slot, empty string = empty)
     private NetworkList<FixedString64Bytes> _slots;
@@ -22,8 +23,15 @@ public class StorageChest : NetworkBehaviour, IInteractable
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Server);
 
+    // Tracks how many players currently have the chest UI open (server-authoritative)
+    private NetworkVariable<int> _openCount = new NetworkVariable<int>(
+        0,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server);
+
     // Offline fallback mirrors
     private string[] _localSlots;
+    private int      _localOpenCount;
 
     public int  ChestGold => _chestGold.Value;
     public int  MaxSlots  => maxSlots;
@@ -48,15 +56,20 @@ public class StorageChest : NetworkBehaviour, IInteractable
                 _slots.Add(new FixedString64Bytes(""));
         }
 
-        _slots.OnListChanged    += _ => { RebuildGoldCache(); OnSlotsChanged?.Invoke(); };
-        _chestGold.OnValueChanged += (_, __) => OnSlotsChanged?.Invoke();
+        _slots.OnListChanged      += _ => { RebuildGoldCache(); OnSlotsChanged?.Invoke(); };
+        _chestGold.OnValueChanged += (_, __)   => OnSlotsChanged?.Invoke();
+        _openCount.OnValueChanged += (prev, next) =>
+        {
+            if (next > 0 && prev == 0) SetAnimatorOpen(true);
+            else if (next == 0 && prev > 0) SetAnimatorOpen(false);
+        };
     }
 
     // ── IInteractable ─────────────────────────────────────────────────────────
 
-    public float HoldDuration => 0f;
+    public float HoldDurationFor(PlayerController viewer) => 0f;
 
-    public string GetPromptText()
+    public string GetPromptText(PlayerController viewer)
     {
         int count = ItemCount();
         return count > 0
@@ -64,10 +77,35 @@ public class StorageChest : NetworkBehaviour, IInteractable
             : "[E] Open Chest";
     }
 
-    public void OnInteractStart(PlayerController player) => player.OpenChest(this);
+    public void OnInteractStart(PlayerController player)
+    {
+        if (IsNetworked) ChangeOpenCountServerRpc(1);
+        else { _localOpenCount++; SetAnimatorOpen(_localOpenCount > 0); }
+        player.OpenChest(this);
+    }
+
     public void OnInteractHold(PlayerController player)   { }
     public void OnInteractCancel(PlayerController player) { }
     public void Release(PlayerController player)          { }
+
+    /// <summary>Called by ChestUI when the player closes the chest panel.</summary>
+    public void NotifyChestClosed()
+    {
+        if (IsNetworked) ChangeOpenCountServerRpc(-1);
+        else { _localOpenCount = Mathf.Max(0, _localOpenCount - 1); SetAnimatorOpen(_localOpenCount > 0); }
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void ChangeOpenCountServerRpc(int delta)
+    {
+        _openCount.Value = Mathf.Max(0, _openCount.Value + delta);
+    }
+
+    private void SetAnimatorOpen(bool open)
+    {
+        if (_animator != null)
+            _animator.SetTrigger(open ? "Open" : "Close");
+    }
 
     // ── Deposit ───────────────────────────────────────────────────────────────
 

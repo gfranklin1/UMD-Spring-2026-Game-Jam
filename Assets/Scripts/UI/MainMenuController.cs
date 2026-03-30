@@ -1,0 +1,87 @@
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+
+/// <summary>
+/// Main menu UI for the standalone MainMenu scene.
+/// No NetworkManager dependency — uses NetworkLauncher to carry host/join
+/// intent into SampleScene where NetworkSetup picks it up in Start().
+/// </summary>
+public class MainMenuController : MonoBehaviour
+{
+    [Header("Panels")]
+    [SerializeField] private GameObject _menuPanel;
+    [SerializeField] private GameObject _joinPanel;
+    [SerializeField] private GameObject _settingsPanel;
+
+    [Header("Main Buttons")]
+    [SerializeField] private Button _hostButton;
+    [SerializeField] private Button _joinButton;
+    [SerializeField] private Button _settingsButton;
+    [SerializeField] private Button _quitButton;
+
+    [Header("Join Panel")]
+    [SerializeField] private InputField _ipInput;
+    [SerializeField] private Button     _connectButton;
+    [SerializeField] private Button     _backButton;
+
+    [Header("Settings Panel")]
+    [SerializeField] private Button _settingsCloseButton;
+
+    private void Awake()
+    {
+        // onClick events are wired as persistent listeners in the scene.
+        // No AddListener needed here — avoids double-firing.
+
+        if (_joinPanel     != null) _joinPanel.SetActive(false);
+        if (_settingsPanel != null) _settingsPanel.SetActive(false);
+        if (_menuPanel     != null) _menuPanel.SetActive(true);
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible   = true;
+    }
+
+    // ── Button Handlers ──────────────────────────────────────────────────────
+
+    private void OnHost()
+    {
+        NetworkLauncher.SetHost();
+        SceneManager.LoadScene("SampleScene");
+    }
+
+    private void OnJoin()
+    {
+        if (_joinPanel != null) _joinPanel.SetActive(true);
+    }
+
+    private void OnConnect()
+    {
+        string ip = _ipInput != null ? _ipInput.text : "127.0.0.1";
+        NetworkLauncher.SetClient(ip);
+        SceneManager.LoadScene("SampleScene");
+    }
+
+    private void OnBack()
+    {
+        if (_joinPanel != null) _joinPanel.SetActive(false);
+    }
+
+    private void OnSettings()
+    {
+        if (_settingsPanel != null) _settingsPanel.SetActive(true);
+    }
+
+    private void OnSettingsClose()
+    {
+        if (_settingsPanel != null) _settingsPanel.SetActive(false);
+    }
+
+    private void OnQuit()
+    {
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
+        Application.Quit();
+#endif
+    }
+}

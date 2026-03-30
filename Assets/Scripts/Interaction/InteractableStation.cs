@@ -6,8 +6,8 @@ public class InteractableStation : MonoBehaviour, IInteractable
     [SerializeField] string stationName = "Station";
     private PlayerController _occupant;
 
-    public string GetPromptText() => _occupant == null ? $"[E] Use {stationName}" : "In use";
-    public float  HoldDuration   => 0f;
+    public string GetPromptText(PlayerController viewer) => _occupant == null ? $"[E] Use {stationName}" : "In use";
+    public float  HoldDurationFor(PlayerController viewer) => 0f;
 
     public void OnInteractStart(PlayerController player)
     {

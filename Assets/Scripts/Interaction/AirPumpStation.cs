@@ -36,8 +36,8 @@ public class AirPumpStation : MonoBehaviour, IInteractable
 
     // ── IInteractable ─────────────────────────────────────────────────────────
 
-    public string GetPromptText() => _operator == null ? $"[E] Use {stationName}" : "In use";
-    public float  HoldDuration   => 0f;
+    public string GetPromptText(PlayerController viewer) => _operator == null ? $"[E] Use {stationName}" : "In use";
+    public float  HoldDurationFor(PlayerController viewer) => 0f;
 
     public void OnInteractStart(PlayerController player)
     {

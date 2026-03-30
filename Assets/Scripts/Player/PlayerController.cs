@@ -400,7 +400,7 @@ public class PlayerController : NetworkBehaviour
             _nearestInteractable = nearest;
             _holdStartTime = -1f;   // cancel progress when target changes
             if (nearest != null)
-                Debug.Log($"[Player] In range: {nearest.GetPromptText()}");
+                Debug.Log($"[Player] In range: {nearest.GetPromptText(this)}");
             else
                 Debug.Log("[Player] Left interact range");
         }
@@ -470,14 +470,14 @@ public class PlayerController : NetworkBehaviour
             return;
         }
 
-        Debug.Log($"[Player] Interact STARTED | state={_state} | nearest={_nearestInteractable?.GetPromptText() ?? "none"}");
+        Debug.Log($"[Player] Interact STARTED | state={_state} | nearest={_nearestInteractable?.GetPromptText(this) ?? "none"}");
         if (_state == PlayerState.AtStation) { ReleaseFromStation(); return; }
 
         // Track hold progress for hold-type interactables (display only — rack coroutine is authority)
-        if (_nearestInteractable != null && _nearestInteractable.HoldDuration > 0f)
+        if (_nearestInteractable != null && _nearestInteractable.HoldDurationFor(this) > 0f)
         {
             _holdStartTime = Time.time;
-            _holdDuration  = _nearestInteractable.HoldDuration;
+            _holdDuration  = _nearestInteractable.HoldDurationFor(this);
         }
         else { _holdStartTime = -1f; }
 
@@ -486,7 +486,7 @@ public class PlayerController : NetworkBehaviour
 
     private void OnInteractHeld(InputAction.CallbackContext ctx)
     {
-        Debug.Log($"[Player] Interact HELD (performed) | nearest={_nearestInteractable?.GetPromptText() ?? "none"}");
+        Debug.Log($"[Player] Interact HELD (performed) | nearest={_nearestInteractable?.GetPromptText(this) ?? "none"}");
         _nearestInteractable?.OnInteractHold(this);
     }
 

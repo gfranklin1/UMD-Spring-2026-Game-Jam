@@ -30,7 +30,7 @@ public class LootPickup : NetworkBehaviour
         foreach (var c in GetComponentsInChildren<Collider>())  c.enabled = vis;
     }
 
-    public string GetPromptText()
+    public string GetPromptText(PlayerController viewer)
     {
         if (itemData == null) return "[E] Pick up";
         string gold = itemData.goldValue > 0 ? $"  ({itemData.goldValue}g)" : "";

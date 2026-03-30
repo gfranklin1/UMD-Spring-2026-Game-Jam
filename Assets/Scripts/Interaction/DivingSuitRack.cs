@@ -37,14 +37,27 @@ public class DivingSuitRack : NetworkBehaviour, IInteractable
     public ulong NetworkSuitWearerObjId => IsNetworked ? _networkSuitWearerObjectId.Value  : 0UL;
     public bool  NetworkSuitHasBoots    => IsNetworked ? _networkSuitHasBoots.Value        : _localSuitHasBoots;
 
-    public float  HoldDuration   => NetworkSuitAvailable ? equipHoldTime : unequipHoldTime;
-    public string GetPromptText()
+    public float HoldDurationFor(PlayerController viewer)
+    {
+        if (NetworkSuitAvailable) return equipHoldTime;
+        bool viewerIsWearer = IsNetworked
+            ? (viewer != null && viewer.NetworkObjectId == _networkSuitWearerObjectId.Value)
+            : (viewer != null && viewer == _localSuitWearer);
+        return viewerIsWearer ? unequipHoldTime : 0f; // non-wearers can't interact — no ring
+    }
+    public string GetPromptText(PlayerController viewer)
     {
         bool available = IsNetworked ? _networkSuitAvailable.Value : _localSuitAvailable;
-        bool hasWearer = IsNetworked ? _networkSuitWearerObjectId.Value != 0UL : _localSuitWearer != null;
-        if (available)  return $"[Hold E {equipHoldTime:F0}s] Equip Suit";
-        if (hasWearer)  return $"[Hold E {unequipHoldTime:F0}s] Remove Suit";
-        return "Suit in use";
+        if (available) return $"[Hold E {equipHoldTime:F0}s] Equip Suit";
+
+        // Suit is taken — only the wearer sees "Remove Suit"; everyone else sees "In Use"
+        bool viewerIsWearer = IsNetworked
+            ? (viewer != null && viewer.NetworkObjectId == _networkSuitWearerObjectId.Value)
+            : (viewer != null && viewer == _localSuitWearer);
+
+        return viewerIsWearer
+            ? $"[Hold E {unequipHoldTime:F0}s] Remove Suit"
+            : "Suit in use";
     }
 
     public void OnInteractStart(PlayerController player)

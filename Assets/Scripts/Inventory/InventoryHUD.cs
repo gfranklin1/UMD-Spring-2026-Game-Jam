@@ -60,7 +60,7 @@ public class InventoryHUD : MonoBehaviour
         {
             var loot = _player != null ? _player.NearestLoot : null;
             if (loot != null && !inventory.IsFull)
-                lootPromptText.text = loot.GetPromptText();
+                lootPromptText.text = loot.GetPromptText(_player);
             else if (loot != null && inventory.IsFull)
                 lootPromptText.text = "Inventory full";
             else

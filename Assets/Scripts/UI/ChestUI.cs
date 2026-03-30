@@ -112,6 +112,7 @@ public class ChestUI : MonoBehaviour
 
     private void OnClose()
     {
+        _chest?.NotifyChestClosed();
         UnsubscribeChest();
         if (_inventory != null)
             _inventory.OnInventoryChanged -= RefreshPlayerSlots;

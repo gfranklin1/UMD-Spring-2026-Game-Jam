@@ -20,10 +20,26 @@ public class NetworkSetup : MonoBehaviour
 
     private void Start()
     {
-        // Allow quick host start via command-line arg: run with --host
+        // Command-line flag takes priority (CI / dedicated server builds)
         foreach (string arg in System.Environment.GetCommandLineArgs())
         {
             if (arg == "--host") { StartHost(); return; }
+        }
+
+        // Read intent set by MainMenuController before loading this scene
+        switch (NetworkLauncher.LaunchIntent)
+        {
+            case NetworkLauncher.Intent.Host:
+                NetworkLauncher.Clear();
+                StartHost();
+                GameManager.Instance?.RegisterNetworkCallbacks();
+                break;
+            case NetworkLauncher.Intent.Client:
+                string addr = NetworkLauncher.ClientAddress;
+                NetworkLauncher.Clear();
+                StartClient(addr);
+                GameManager.Instance?.RegisterNetworkCallbacks();
+                break;
         }
     }
 

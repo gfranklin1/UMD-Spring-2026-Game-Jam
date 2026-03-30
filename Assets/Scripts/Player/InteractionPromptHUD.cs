@@ -42,10 +42,10 @@ public class InteractionPromptHUD : MonoBehaviour
 
         // Update prompt text
         if (_promptText != null)
-            _promptText.text = nearest.GetPromptText();
+            _promptText.text = nearest.GetPromptText(_player);
 
         // Show/hide ring and update fill
-        bool isHold = nearest.HoldDuration > 0f;
+        bool isHold = nearest.HoldDurationFor(_player) > 0f;
         if (_radialRing != null) _radialRing.SetActive(isHold);
 
         if (isHold && _radialFill != null)

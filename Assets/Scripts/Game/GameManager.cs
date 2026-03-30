@@ -10,6 +10,8 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
 
+    private bool _returningToMenu = false;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -21,10 +23,47 @@ public class GameManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
+    /// <summary>
+    /// Register the client-disconnect callback each time SampleScene starts networking.
+    /// Called by NetworkSetup after StartHost/StartClient.
+    /// </summary>
+    public void RegisterNetworkCallbacks()
+    {
+        if (NetworkManager.Singleton == null) return;
+        NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnected;
+        NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
+    }
+
+    private void OnClientDisconnected(ulong clientId)
+    {
+        if (_returningToMenu) return;
+        if (NetworkManager.Singleton == null) return;
+
+        // On the host, this fires for other clients leaving — ignore.
+        // On a client, this fires when OUR connection to the host is lost.
+        bool weAreClient = !NetworkManager.Singleton.IsServer;
+        if (weAreClient)
+            RestartGame();
+    }
+
     public void RestartGame()
     {
-        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
-            NetworkManager.Singleton.Shutdown();
-        SceneManager.LoadScene("SampleScene");
+        if (_returningToMenu) return;
+        _returningToMenu = true;
+
+        if (NetworkManager.Singleton != null)
+        {
+            NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnected;
+
+            if (NetworkManager.Singleton.IsListening)
+                NetworkManager.Singleton.Shutdown();
+
+            // Destroy the NetworkManager so its DontDestroyOnLoad objects
+            // (NetworkHUD, etc.) don't persist into the MainMenu scene.
+            Destroy(NetworkManager.Singleton.gameObject);
+        }
+
+        SceneManager.LoadScene("MainMenu");
+        _returningToMenu = false;
     }
 }
