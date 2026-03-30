@@ -1,3 +1,4 @@
+using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -5,7 +6,7 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : NetworkBehaviour
 {
-    private enum PlayerState { OnDeck, AtStation, WearingSuit, Underwater }
+    private enum PlayerState { OnDeck, AtStation, WearingSuit, Underwater, Dead }
 
     [Header("Movement")]
     [SerializeField] private float walkSpeed = 6f;
@@ -83,6 +84,19 @@ public class PlayerController : NetworkBehaviour
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Owner);
 
+    // Synced so all clients know who is dead (spectating)
+    public NetworkVariable<bool> NetworkIsDead = new NetworkVariable<bool>(false,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server);
+
+    public NetworkVariable<FixedString64Bytes> NetworkPlayerName = new NetworkVariable<FixedString64Bytes>(
+        new FixedString64Bytes("Player"),
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server);
+
+    public bool      IsDead     => NetworkIsDead.Value;
+    public Transform CameraRoot => cameraRoot;
+
     private void Awake()
     {
         _cc           = GetComponent<CharacterController>();
@@ -123,6 +137,10 @@ public class PlayerController : NetworkBehaviour
             _currentSpeed = walkSpeed;
             _spawnPosition = transform.position;
             enabled = true;
+
+            string localName = NetworkLauncher.PlayerName;
+            if (IsServer) NetworkPlayerName.Value = new FixedString64Bytes(localName);
+            else          SetPlayerNameServerRpc(new FixedString64Bytes(localName));
             return;
         }
 
@@ -141,8 +159,16 @@ public class PlayerController : NetworkBehaviour
             if (playerCam != null) playerCam.enabled = false;
         }
 
+        // Track remote players' dead state to hide their bodies
+        NetworkIsDead.OnValueChanged += OnNetworkIsDeadChanged;
+        if (NetworkIsDead.Value) ApplyDeadVisuals();
+
         enabled = false;
     }
+
+    private void OnNetworkIsDeadChanged(bool _, bool isDead) { if (isDead) ApplyDeadVisuals(); else UndoDeadVisuals(); }
+    private void ApplyDeadVisuals() { if (bodyRenderer) bodyRenderer.enabled = false; if (_cc) _cc.enabled = false; }
+    private void UndoDeadVisuals()  { if (!IsOwner && bodyRenderer) bodyRenderer.enabled = true; if (_cc) _cc.enabled = true; }
 
     public override void OnNetworkDespawn()
     {
@@ -154,6 +180,7 @@ public class PlayerController : NetworkBehaviour
         }
         if (_quotaResetSubscribed && QuotaManager.Instance != null)
             QuotaManager.Instance.OnGameReset -= OnQuotaReset;
+        NetworkIsDead.OnValueChanged -= OnNetworkIsDeadChanged;
     }
 
     private void OnQuotaReset()
@@ -167,6 +194,17 @@ public class PlayerController : NetworkBehaviour
         _cc.enabled = false;
         transform.position = _spawnPosition;
         _cc.enabled = true;
+
+        // Restore from spectator mode if dead
+        _state = PlayerState.OnDeck;
+        GetComponent<SpectatorCamera>()?.Deactivate();
+        GetComponent<SpectatorHUD>()?.Hide();
+        GetComponent<PlayerHUD>()?.ShowForRespawn();
+        if (cameraRoot != null) { var pc = cameraRoot.GetComponent<PlayerCamera>(); if (pc) pc.enabled = true; }
+
+        bool net = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+        if (net && !IsServer) ClearDeadStateServerRpc();
+        else if (net) NetworkIsDead.Value = false;
     }
 
     private void Update()
@@ -180,6 +218,9 @@ public class PlayerController : NetworkBehaviour
 
         // Game over — freeze everything
         if (QuotaManager.Instance != null && QuotaManager.Instance.IsGameOver) return;
+
+        // Dead — spectating, skip all game logic
+        if (_state == PlayerState.Dead) return;
 
         // Chest UI open — freeze all movement/interaction; only check for close keys
         if (_openChest != null)
@@ -607,11 +648,17 @@ public class PlayerController : NetworkBehaviour
         if (_health <= 0f && !_hasDied)
         {
             _hasDied = true;
+            EnterSpectatorMode();
             bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
             if (!networked || IsServer)
-                QuotaManager.Instance?.TriggerGameOver(1);
-            else
-                ReportDeathServerRpc();
+            {
+                NetworkIsDead.Value = true;
+                bool anyAlive = false;
+                foreach (var pc in FindObjectsByType<PlayerController>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+                    if (!pc.NetworkIsDead.Value) { anyAlive = true; break; }
+                if (!anyAlive) QuotaManager.Instance?.TriggerGameOver(1);
+            }
+            else EnterDeadStateServerRpc();
         }
     }
 
@@ -777,10 +824,47 @@ public class PlayerController : NetworkBehaviour
         _cableSystem?.ClearAnchor();
     }
 
-    [ServerRpc]
-    private void ReportDeathServerRpc()
+    private void EnterSpectatorMode()
     {
-        QuotaManager.Instance?.TriggerGameOver(1);
+        if (!IsOwner) return;
+        _state = PlayerState.Dead;
+        _cc.enabled = false;
+        GetComponent<PlayerHUD>()?.HideForDeath();
+        if (cameraRoot != null) { var pc = cameraRoot.GetComponent<PlayerCamera>(); if (pc) pc.enabled = false; }
+        GetComponent<SpectatorCamera>()?.Activate(); // Activate also calls hud.SetTarget
+    }
+
+    [ServerRpc]
+    private void EnterDeadStateServerRpc()
+    {
+        NetworkIsDead.Value = true;
+        bool anyAlive = false;
+        foreach (var pc in FindObjectsByType<PlayerController>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+            if (!pc.NetworkIsDead.Value) { anyAlive = true; break; }
+        if (!anyAlive) QuotaManager.Instance?.TriggerGameOver(1);
+    }
+
+    [ServerRpc]
+    private void ClearDeadStateServerRpc() => NetworkIsDead.Value = false;
+
+    [ServerRpc]
+    private void SetPlayerNameServerRpc(FixedString64Bytes requestedName)
+    {
+        // Collect names already in use by other players
+        var used = new System.Collections.Generic.HashSet<string>();
+        foreach (var pc in FindObjectsByType<PlayerController>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+            if (pc != this) used.Add(pc.NetworkPlayerName.Value.ToString());
+
+        string wanted = requestedName.ToString();
+        if (!used.Contains(wanted)) { NetworkPlayerName.Value = requestedName; return; }
+
+        // Conflict — assign the first unused pirate name
+        string[] pool = { "Scurvy Dog", "Bilge Rat", "Salty Pete", "Barnacle Bill", "Captain No-Name" };
+        foreach (var n in pool)
+            if (!used.Contains(n)) { NetworkPlayerName.Value = new FixedString64Bytes(n); return; }
+
+        // All pool names taken — keep requested name as-is
+        NetworkPlayerName.Value = requestedName;
     }
 
     // ── Loot Pickup/Drop RPCs ─────────────────────────────────────────────────

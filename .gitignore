@@ -104,8 +104,4 @@ InitTestScene*.unity*
 # com.IvanMurzak Unity MCP / Claude AI integration
 /[Aa]ssets/com.IvanMurzak/
 /[Aa]ssets/com.IvanMurzak.meta
-/SKILLS/
-.claude/
 .mcp.json
-CLAUDE.md
-claude.md

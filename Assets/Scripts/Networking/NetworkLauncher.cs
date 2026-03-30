@@ -9,6 +9,12 @@ public static class NetworkLauncher
 
     public static Intent LaunchIntent  { get; private set; } = Intent.None;
     public static string ClientAddress { get; private set; } = "127.0.0.1";
+    private static readonly string[] _pirateNames = { "Scurvy Dog", "Bilge Rat", "Salty Pete", "Barnacle Bill", "Captain No-Name" };
+    private static string PickRandomPirateName() => _pirateNames[new System.Random().Next(_pirateNames.Length)];
+
+    public static string PlayerName { get; private set; } = PickRandomPirateName();
+
+    public static void SetPlayerName(string n) { PlayerName = string.IsNullOrWhiteSpace(n) ? PickRandomPirateName() : n.Trim(); }
 
     public static void SetHost()
     {

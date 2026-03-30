@@ -14,6 +14,9 @@ public class MainMenuController : MonoBehaviour
     [SerializeField] private GameObject _joinPanel;
     [SerializeField] private GameObject _settingsPanel;
 
+    [Header("Player Name")]
+    [SerializeField] private InputField _nameInput;
+
     [Header("Main Buttons")]
     [SerializeField] private Button _hostButton;
     [SerializeField] private Button _joinButton;
@@ -37,6 +40,11 @@ public class MainMenuController : MonoBehaviour
         if (_settingsPanel != null) _settingsPanel.SetActive(false);
         if (_menuPanel     != null) _menuPanel.SetActive(true);
 
+        if (_nameInput != null)
+            _nameInput.text = PlayerPrefs.HasKey("PlayerName")
+                ? PlayerPrefs.GetString("PlayerName", "")
+                : NetworkLauncher.PlayerName;
+
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible   = true;
     }
@@ -45,6 +53,7 @@ public class MainMenuController : MonoBehaviour
 
     private void OnHost()
     {
+        SaveAndApplyName();
         NetworkLauncher.SetHost();
         SceneManager.LoadScene("SampleScene");
     }
@@ -56,6 +65,7 @@ public class MainMenuController : MonoBehaviour
 
     private void OnConnect()
     {
+        SaveAndApplyName();
         string ip = _ipInput != null ? _ipInput.text : "127.0.0.1";
         NetworkLauncher.SetClient(ip);
         SceneManager.LoadScene("SampleScene");
@@ -74,6 +84,13 @@ public class MainMenuController : MonoBehaviour
     private void OnSettingsClose()
     {
         if (_settingsPanel != null) _settingsPanel.SetActive(false);
+    }
+
+    private void SaveAndApplyName()
+    {
+        string n = _nameInput != null ? _nameInput.text : "";
+        PlayerPrefs.SetString("PlayerName", n);
+        NetworkLauncher.SetPlayerName(n);
     }
 
     private void OnQuit()
