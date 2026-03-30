@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1001 &1685284922440995380
+--- !u!1001 &9163120958700116396
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -8,76 +8,76 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: -8679921383154817045, guid: 4ba3957432dc89b458bcccbe10f1e5f2, type: 3}
+    - target: {fileID: -8679921383154817045, guid: d6f5186960935004bab07608cc4077bc, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -1.2191973
+      value: -2.1377969
       objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 4ba3957432dc89b458bcccbe10f1e5f2, type: 3}
+    - target: {fileID: -8679921383154817045, guid: d6f5186960935004bab07608cc4077bc, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 4.5472794
+      value: 4.88228
       objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 4ba3957432dc89b458bcccbe10f1e5f2, type: 3}
+    - target: {fileID: -8679921383154817045, guid: d6f5186960935004bab07608cc4077bc, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 7.1293855
+      value: 6.2803593
       objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 4ba3957432dc89b458bcccbe10f1e5f2, type: 3}
+    - target: {fileID: -8679921383154817045, guid: d6f5186960935004bab07608cc4077bc, type: 3}
       propertyPath: m_LocalRotation.w
       value: 1
       objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 4ba3957432dc89b458bcccbe10f1e5f2, type: 3}
+    - target: {fileID: -8679921383154817045, guid: d6f5186960935004bab07608cc4077bc, type: 3}
       propertyPath: m_LocalRotation.x
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 4ba3957432dc89b458bcccbe10f1e5f2, type: 3}
+    - target: {fileID: -8679921383154817045, guid: d6f5186960935004bab07608cc4077bc, type: 3}
       propertyPath: m_LocalRotation.y
       value: -0
       objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 4ba3957432dc89b458bcccbe10f1e5f2, type: 3}
+    - target: {fileID: -8679921383154817045, guid: d6f5186960935004bab07608cc4077bc, type: 3}
       propertyPath: m_LocalRotation.z
       value: -0
       objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 4ba3957432dc89b458bcccbe10f1e5f2, type: 3}
+    - target: {fileID: -8679921383154817045, guid: d6f5186960935004bab07608cc4077bc, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 4ba3957432dc89b458bcccbe10f1e5f2, type: 3}
+    - target: {fileID: -8679921383154817045, guid: d6f5186960935004bab07608cc4077bc, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 4ba3957432dc89b458bcccbe10f1e5f2, type: 3}
+    - target: {fileID: -8679921383154817045, guid: d6f5186960935004bab07608cc4077bc, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 919132149155446097, guid: 4ba3957432dc89b458bcccbe10f1e5f2, type: 3}
+    - target: {fileID: 919132149155446097, guid: d6f5186960935004bab07608cc4077bc, type: 3}
       propertyPath: m_Name
-      value: Bottle
+      value: Cannon Ball
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4ba3957432dc89b458bcccbe10f1e5f2, type: 3}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d6f5186960935004bab07608cc4077bc, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 476711697792240523}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4ba3957432dc89b458bcccbe10f1e5f2, type: 3}
+      addedObject: {fileID: 8454097932642317038}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d6f5186960935004bab07608cc4077bc, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 6834727174955559927}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4ba3957432dc89b458bcccbe10f1e5f2, type: 3}
+      addedObject: {fileID: 3182293922265399300}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d6f5186960935004bab07608cc4077bc, type: 3}
       insertIndex: -1
-      addedObject: {fileID: -8025535115958642303}
-  m_SourcePrefab: {fileID: 100100000, guid: 4ba3957432dc89b458bcccbe10f1e5f2, type: 3}
---- !u!1 &1991220389193707365 stripped
+      addedObject: {fileID: 1481645675611616154}
+  m_SourcePrefab: {fileID: 100100000, guid: d6f5186960935004bab07608cc4077bc, type: 3}
+--- !u!1 &8352092803660834045 stripped
 GameObject:
-  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 4ba3957432dc89b458bcccbe10f1e5f2, type: 3}
-  m_PrefabInstance: {fileID: 1685284922440995380}
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: d6f5186960935004bab07608cc4077bc, type: 3}
+  m_PrefabInstance: {fileID: 9163120958700116396}
   m_PrefabAsset: {fileID: 0}
---- !u!65 &476711697792240523
-BoxCollider:
+--- !u!135 &8454097932642317038
+SphereCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1991220389193707365}
+  m_GameObject: {fileID: 8352092803660834045}
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -90,22 +90,22 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.36432087, y: 0.89045095, z: 0.36432087}
-  m_Center: {x: 0, y: 0.44522548, z: 0}
---- !u!114 &6834727174955559927
+  m_Radius: 0.33499998
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &3182293922265399300
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1991220389193707365}
+  m_GameObject: {fileID: 8352092803660834045}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 2980751466
-  InScenePlacedSourceGlobalObjectIdHash: 2614069060
+  GlobalObjectIdHash: 2980400488
+  InScenePlacedSourceGlobalObjectIdHash: 2432994956
   DeferredDespawnTick: 0
   Ownership: 1
   AlwaysReplicateAsRoot: 0
@@ -117,18 +117,18 @@ MonoBehaviour:
   AutoObjectParentSync: 1
   SyncOwnerTransformWhenParented: 1
   AllowOwnerToParent: 0
---- !u!114 &-8025535115958642303
+--- !u!114 &1481645675611616154
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1991220389193707365}
+  m_GameObject: {fileID: 8352092803660834045}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 23684a9ba557b1c40942446763a726e7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LootPickup
   ShowTopMostFoldoutHeaderGroup: 1
-  itemData: {fileID: 11400000, guid: 3ee6dfdffde6a5343be69bda06a1035b, type: 2}
-  itemId: Bottle
+  itemData: {fileID: 11400000, guid: a7344b18f3db7034e800109e681ee1d3, type: 2}
+  itemId: Cannon Ball
