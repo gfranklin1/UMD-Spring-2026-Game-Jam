@@ -32,6 +32,14 @@ public class PlayerCamera : MonoBehaviour
 
     private void Update()
     {
+        // Freeze look and free cursor while game over screen is showing
+        bool gameOver = QuotaManager.Instance != null && QuotaManager.Instance.IsGameOver;
+        if (gameOver)
+        {
+            if (_cursorLocked) SetCursorLocked(false);
+            return;
+        }
+
         bool chestOpen = _playerController != null && _playerController.CurrentOpenChest != null;
 
         // Sync cursor state to chest UI state

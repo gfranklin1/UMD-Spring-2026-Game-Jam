@@ -51,7 +51,7 @@ public class UnderwaterEffect : MonoBehaviour
                     || _player.IsOwner;
         if (!isLocal) return;
 
-        _targetWeight = _player.IsUnderwater ? 1f : 0f;
+        _targetWeight = _player.IsHeadUnderwater ? 1f : 0f;
         _volume.weight = Mathf.MoveTowards(_volume.weight, _targetWeight, transitionSpeed * Time.deltaTime);
     }
 

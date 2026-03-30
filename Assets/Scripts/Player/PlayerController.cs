@@ -64,6 +64,9 @@ public class PlayerController : NetworkBehaviour
     private PlayerInventory _inventory;
     private LootPickup _nearestLoot;
     private StorageChest _openChest;
+    private bool  _hasDied = false;
+    private Vector3 _spawnPosition;
+    private bool _quotaResetSubscribed = false;
     private const float InteractRange = 2.5f;
 
     public StorageChest CurrentOpenChest => _openChest;
@@ -118,6 +121,7 @@ public class PlayerController : NetworkBehaviour
             _health = maxHealth;
             _oxygen = maxBreathSeconds;
             _currentSpeed = walkSpeed;
+            _spawnPosition = transform.position;
             enabled = true;
             return;
         }
@@ -148,10 +152,35 @@ public class PlayerController : NetworkBehaviour
             _interactAction.performed -= OnInteractHeld;
             _interactAction.canceled  -= OnInteractCanceled;
         }
+        if (_quotaResetSubscribed && QuotaManager.Instance != null)
+            QuotaManager.Instance.OnGameReset -= OnQuotaReset;
+    }
+
+    private void OnQuotaReset()
+    {
+        if (!IsOwner) return;
+        _hasDied = false;
+        _health  = maxHealth;
+        _oxygen  = maxBreathSeconds;
+
+        // Teleport back to spawn — must go through CharacterController
+        _cc.enabled = false;
+        transform.position = _spawnPosition;
+        _cc.enabled = true;
     }
 
     private void Update()
     {
+        // Subscribe to quota reset as soon as QuotaManager is available
+        if (!_quotaResetSubscribed && QuotaManager.Instance != null)
+        {
+            _quotaResetSubscribed = true;
+            QuotaManager.Instance.OnGameReset += OnQuotaReset;
+        }
+
+        // Game over — freeze everything
+        if (QuotaManager.Instance != null && QuotaManager.Instance.IsGameOver) return;
+
         // Chest UI open — freeze all movement/interaction; only check for close keys
         if (_openChest != null)
         {
@@ -574,6 +603,16 @@ public class PlayerController : NetworkBehaviour
         bool  drowning = _state == PlayerState.Underwater && headY < _currentWaveHeight && _oxygen <= 0f;
         if (drowning)
             _health = Mathf.Max(_health - drownDamageRate * Time.deltaTime, 0f);
+
+        if (_health <= 0f && !_hasDied)
+        {
+            _hasDied = true;
+            bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+            if (!networked || IsServer)
+                QuotaManager.Instance?.TriggerGameOver(1);
+            else
+                ReportDeathServerRpc();
+        }
     }
 
     /// <summary>Called by the pump station to set the continuous oxygen flow rate (oxygen/s).</summary>
@@ -616,6 +655,14 @@ public class PlayerController : NetworkBehaviour
         OnChestClosed?.Invoke();
     }
     public bool  IsUnderwater     => _state == PlayerState.Underwater;
+    public bool  IsHeadUnderwater
+    {
+        get
+        {
+            float headY = transform.position.y + _cc.height * 0.5f;
+            return _state == PlayerState.Underwater && headY < _currentWaveHeight;
+        }
+    }
     public bool  IsUnderwaterWithSuit => _state == PlayerState.Underwater
                                       && _preDiveState == PlayerState.WearingSuit;
     /// <summary>0–1 while holding Q to kick boots off; -1 when not applicable.</summary>
@@ -705,6 +752,12 @@ public class PlayerController : NetworkBehaviour
     {
         if (!IsOwner) return;
         UnequipSuit();
+    }
+
+    [ServerRpc]
+    private void ReportDeathServerRpc()
+    {
+        QuotaManager.Instance?.TriggerGameOver(1);
     }
 
     // ── Loot Pickup/Drop RPCs ─────────────────────────────────────────────────

@@ -1,8 +1,10 @@
+using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Singleton game manager. Persists across scenes.
-/// Future home for quota tracking, cycle state, merchant spawning, etc.
+/// Handles restart flow after game over.
 /// </summary>
 public class GameManager : MonoBehaviour
 {
@@ -17,5 +19,12 @@ public class GameManager : MonoBehaviour
         }
         Instance = this;
         DontDestroyOnLoad(gameObject);
+    }
+
+    public void RestartGame()
+    {
+        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
+            NetworkManager.Singleton.Shutdown();
+        SceneManager.LoadScene("SampleScene");
     }
 }

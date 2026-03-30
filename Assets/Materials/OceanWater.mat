@@ -8,8 +8,8 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: OceanWater
-  m_Shader: {fileID: 4800000, guid: dd394015e5f082243bbc685107c60884, type: 3}
-  m_Parent: {fileID: 0}
+  m_Shader: {fileID: -6465566751694194690, guid: 408b90334c8245b4bbf8053ad1ec4362, type: 3}
+  m_Parent: {fileID: 2100000, guid: 06dd4a6da2f1f0f46aacb19054bad6bf, type: 2}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
   m_InvalidKeywords: []
@@ -18,19 +18,32 @@ Material:
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
   stringTagMap: {}
-  disabledShaderPasses: []
+  disabledShaderPasses:
+  - MOTIONVECTORS
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _DepthFade: 0.35
-    - _FoamSharpness: 3
+    - _Absorption_Coefficient: 0
     - _Smoothness: 0.78
     m_Colors:
+    - _Absorption_Color: {r: 0, g: 0, b: 0, a: 1}
     - _BaseColor: {r: 0.04, g: 0.2, b: 0.42, a: 0.88}
-    - _DeepColor: {r: 0.01, g: 0.07, b: 0.18, a: 1}
-    - _FoamColor: {r: 0.95, g: 0.97, b: 1, a: 1}
+    - _Water_Color: {r: 0, g: 0, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
+--- !u!114 &2612952441694705042
+MonoBehaviour:
+  m_ObjectHideFlags: 11
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0353a89b1f911e48b9e16bdc9f2e058, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Editor::UnityEditor.Rendering.Universal.AssetVersion
+  version: 10

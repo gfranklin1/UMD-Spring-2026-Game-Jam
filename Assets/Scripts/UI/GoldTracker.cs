@@ -48,4 +48,11 @@ public class GoldTracker : NetworkBehaviour
         if (!IsServer) return;
         _totalGold.Value += amount;
     }
+
+    /// <summary>Server-only: reset gold to zero at the start of a new quota cycle.</summary>
+    public void ResetGold()
+    {
+        if (!IsServer) return;
+        _totalGold.Value = 0;
+    }
 }

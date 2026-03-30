@@ -10,6 +10,7 @@ public class PlayerHUD : NetworkBehaviour
     [SerializeField] private RectTransform _oxygenFillRT;
     [SerializeField] private Text          _bootPromptText;    // "[Hold G] Kick off boots"
     [SerializeField] private RectTransform _bootKickFillRT;    // progress bar while holding G
+    [SerializeField] private Text          _quotaDayText;      // top-left: "Day 2/3\nQuota: 150/500g"
 
     private PlayerController _player;
 
@@ -57,5 +58,13 @@ public class PlayerHUD : NetworkBehaviour
         if (_bootKickFillRT  != null) _bootKickFillRT.gameObject.SetActive(showBoot && kickProgress > 0f);
         if (_bootKickFillRT  != null && showBoot)
             _bootKickFillRT.anchorMax = new Vector2(Mathf.Clamp01(kickProgress), 1f);
+
+        // Quota / day display
+        if (_quotaDayText != null && QuotaManager.Instance != null)
+        {
+            var qm = QuotaManager.Instance;
+            int gold = GoldTracker.Instance?.TotalGold ?? 0;
+            _quotaDayText.text = $"Day {qm.CurrentDay}/{qm.DaysPerCycle}\nQuota: {gold}/{qm.CurrentQuotaTarget}g";
+        }
     }
 }
