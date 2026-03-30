@@ -195,7 +195,16 @@ public class PlayerController : NetworkBehaviour
         transform.position = _spawnPosition;
         _cc.enabled = true;
 
-        // Restore from spectator mode if dead
+        // Reset suit state unconditionally (RPC may arrive late or out of order)
+        _holdStartTime = -1f;
+        _hasBoots      = false;
+        _bootKickTimer = 0f;
+        SetPumpFlowRate(0f);
+        _suitRack = null;
+        _networkWearingSuit.Value = false;
+        _cableSystem?.ClearAnchor();
+
+        // Restore from spectator / any other state
         _state = PlayerState.OnDeck;
         GetComponent<SpectatorCamera>()?.Deactivate();
         GetComponent<SpectatorHUD>()?.Hide();

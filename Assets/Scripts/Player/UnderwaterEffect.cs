@@ -34,6 +34,7 @@ public class UnderwaterEffect : MonoBehaviour
 
     // ─── Runtime ──────────────────────────────────────────────────────────────
     private PlayerController _player;
+    private OceanWaves       _oceanWaves;
     private Volume           _volume;
     private float            _targetWeight;
 
@@ -41,6 +42,11 @@ public class UnderwaterEffect : MonoBehaviour
     {
         _player = GetComponent<PlayerController>();
         BuildVolume();
+    }
+
+    private void Start()
+    {
+        _oceanWaves = FindObjectOfType<OceanWaves>();
     }
 
     private void Update()
@@ -51,7 +57,16 @@ public class UnderwaterEffect : MonoBehaviour
                     || _player.IsOwner;
         if (!isLocal) return;
 
-        _targetWeight = _player.IsHeadUnderwater ? 1f : 0f;
+        if (_player.IsDead && _oceanWaves != null)
+        {
+            var cam = _player.CameraRoot;
+            _targetWeight = (cam != null && cam.position.y < _oceanWaves.GetWaveHeight(cam.position)) ? 1f : 0f;
+        }
+        else
+        {
+            _targetWeight = _player.IsHeadUnderwater ? 1f : 0f;
+        }
+
         _volume.weight = Mathf.MoveTowards(_volume.weight, _targetWeight, transitionSpeed * Time.deltaTime);
     }
 

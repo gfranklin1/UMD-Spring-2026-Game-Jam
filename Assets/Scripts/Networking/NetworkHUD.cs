@@ -17,13 +17,7 @@ public class NetworkHUD : MonoBehaviour
     {
         if (NetworkManager.Singleton == null) return;
         if (NetworkManager.Singleton.IsListening)
-        {
-            GUILayout.BeginArea(new Rect(10, 10, 220, 40));
-            GUILayout.Label($"Mode: {(NetworkManager.Singleton.IsHost ? "Host" : "Client")}  " +
-                            $"Players: {NetworkManager.Singleton.ConnectedClientsIds.Count}");
-            GUILayout.EndArea();
             return;
-        }
 
         GUILayout.BeginArea(new Rect(10, 10, 220, 120));
 
