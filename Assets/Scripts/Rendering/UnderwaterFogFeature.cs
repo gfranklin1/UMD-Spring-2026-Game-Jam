@@ -46,7 +46,7 @@ public class UnderwaterFogFeature : ScriptableRendererFeature
     {
         private readonly Material _material;
 
-        private static readonly int s_FogWeightId = Shader.PropertyToID("_UnderwaterFogWeight");
+        private static readonly int s_FogDensityId = Shader.PropertyToID("_UnderwaterFogDensity");
 
         public UnderwaterFogPass(Material material)
         {
@@ -65,8 +65,8 @@ public class UnderwaterFogFeature : ScriptableRendererFeature
         {
             if (_material == null) return;
 
-            // Skip entirely if effect is fully off (avoids unnecessary pass overhead)
-            if (Shader.GetGlobalFloat(s_FogWeightId) < 0.001f) return;
+            // Skip only when fog density is zero — the shader self-governs via water column length
+            if (Shader.GetGlobalFloat(s_FogDensityId) < 0.0001f) return;
 
             var resourceData = frameData.Get<UniversalResourceData>();
 

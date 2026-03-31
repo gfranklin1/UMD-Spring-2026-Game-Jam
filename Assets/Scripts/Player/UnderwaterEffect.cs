@@ -44,10 +44,11 @@ public class UnderwaterEffect : MonoBehaviour
     [SerializeField] private float fullDarknessDepth = 25f;   // metres for max fog + blackout
 
     // ─── Shader global IDs ────────────────────────────────────────────────────
-    private static readonly int s_FogColor   = Shader.PropertyToID("_UnderwaterFogColor");
-    private static readonly int s_FogDensity = Shader.PropertyToID("_UnderwaterFogDensity");
-    private static readonly int s_FogOffset  = Shader.PropertyToID("_UnderwaterFogOffset");
-    private static readonly int s_FogWeight  = Shader.PropertyToID("_UnderwaterFogWeight");
+    private static readonly int s_FogColor    = Shader.PropertyToID("_UnderwaterFogColor");
+    private static readonly int s_FogDensity  = Shader.PropertyToID("_UnderwaterFogDensity");
+    private static readonly int s_FogOffset   = Shader.PropertyToID("_UnderwaterFogOffset");
+    private static readonly int s_FogWeight   = Shader.PropertyToID("_UnderwaterFogWeight");
+    private static readonly int s_WaterSurfY  = Shader.PropertyToID("_WaterSurfaceY");
 
     // ─── Runtime ──────────────────────────────────────────────────────────────
     private PlayerController    _player;
@@ -80,7 +81,7 @@ public class UnderwaterEffect : MonoBehaviour
                     || _player.IsOwner;
         if (!isLocal)
         {
-            Shader.SetGlobalFloat(s_FogWeight, 0f);
+            Shader.SetGlobalFloat(s_FogDensity, 0f);
             return;
         }
 
@@ -114,11 +115,19 @@ public class UnderwaterEffect : MonoBehaviour
         float depthT = Mathf.Clamp01(depth / fullDarknessDepth);
 
         // ── Drive distance fog via global shader properties ───────────────────
+        float waterSurfaceY = _oceanWaves != null
+            ? _oceanWaves.GetWaveHeight(transform.position)
+            : 0f;
+        // Density scales with depth when underwater; above water uses minFogDensity (for looking-in fog)
+        float fogDensity = headUnder
+            ? Mathf.Lerp(minFogDensity, maxFogDensity, depthT)
+            : minFogDensity;
         var (fogCol, _, _, _, _) = GetPresetValues(colorMode);
         Shader.SetGlobalColor(s_FogColor,   fogCol);
         Shader.SetGlobalFloat(s_FogOffset,  fogStartOffset);
-        Shader.SetGlobalFloat(s_FogDensity, Mathf.Lerp(minFogDensity, maxFogDensity, depthT));
-        Shader.SetGlobalFloat(s_FogWeight,  _volume.weight);   // smooth in/out at surface
+        Shader.SetGlobalFloat(s_FogDensity, fogDensity);
+        Shader.SetGlobalFloat(s_FogWeight,  _volume.weight);
+        Shader.SetGlobalFloat(s_WaterSurfY, waterSurfaceY);
 
         // ── Post-processing: depth-scaled close-up effects ────────────────────
         if (_colorAdjustments != null)
@@ -216,7 +225,7 @@ public class UnderwaterEffect : MonoBehaviour
     private void OnDestroy()
     {
         // Clear fog when this player is destroyed (avoids fog sticking on screen)
-        Shader.SetGlobalFloat(s_FogWeight, 0f);
+        Shader.SetGlobalFloat(s_FogDensity, 0f);
 
         if (_volume != null && _volume.profile != null)
             Destroy(_volume.profile);
