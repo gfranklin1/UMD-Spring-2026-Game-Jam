@@ -1344,6 +1344,75 @@ MonoBehaviour:
     m_VerticalOverflow: 0
     m_LineSpacing: 1
   m_Text: Stats...
+--- !u!1 &1231519876
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1231519878}
+  - component: {fileID: 1231519877}
+  m_Layer: 0
+  m_Name: SeabedManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1231519877
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1231519876}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ba04a96f551fbba4690561a838cc2b28, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SeabedManager
+  chunkResolution: 20
+  chunkSize: 40
+  loadRadius: 4
+  shipTransform: {fileID: 1705308074}
+  seed: 0
+  noiseScale: 0.0018
+  noiseScale2: 0.005
+  octave1Weight: 0.88
+  octave2Weight: 0.12
+  warpScale: 0.003
+  warpStrength: 50
+  surfaceY: 0
+  minFloorDepth: 8
+  shallowRange: 45
+  terraceSteps: 3
+  terraceBlend: 0.4
+  canyonScale: 0.003
+  canyonThreshold: 0.55
+  canyonMaxDepth: 80
+  nominalSiteSpacing: 500
+  lootPointsPerSite: 6
+  lootPointRadius: 15
+  shallowMaxDepth: 12
+  midMaxDepth: 30
+  seabedMaterial: {fileID: 2100000, guid: 1ef3d6df2aa95ab4fbc87b453a14dfd2, type: 2}
+--- !u!4 &1231519878
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1231519876}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1259657359
 GameObject:
   m_ObjectHideFlags: 0
@@ -2390,7 +2459,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!23 &2095945355
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -3146,3 +3215,4 @@ SceneRoots:
   - {fileID: 503605600}
   - {fileID: 3536035590408339132}
   - {fileID: 1668056326}
+  - {fileID: 1231519878}

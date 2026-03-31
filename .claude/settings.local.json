@@ -26,7 +26,10 @@
       "mcp__ai-game-developer__scene-create",
       "mcp__ai-game-developer__scene-open",
       "mcp__ai-game-developer__scene-unload",
-      "mcp__ai-game-developer__tool-list"
+      "mcp__ai-game-developer__tool-list",
+      "Bash(xargs grep:*)",
+      "Bash(grep -v \"^  m_Name: $\")",
+      "mcp__ai-game-developer__assets-shader-list-all"
     ]
   },
   "enableAllProjectMcpServers": true,
