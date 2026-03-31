@@ -167,6 +167,20 @@ public class PlayerController : NetworkBehaviour
     }
 
     private void OnNetworkIsDeadChanged(bool _, bool isDead) { if (isDead) ApplyDeadVisuals(); else UndoDeadVisuals(); }
+
+    /// <summary>
+    /// Server → owning client: teleport to an assigned deck spawn point and
+    /// update _spawnPosition so quota-reset respawns land here too.
+    /// </summary>
+    [ClientRpc]
+    public void AssignSpawnPointClientRpc(Vector3 position, ClientRpcParams _ = default)
+    {
+        if (!IsOwner) return;
+        _spawnPosition = position;
+        _cc.enabled = false;
+        transform.position = position;
+        _cc.enabled = true;
+    }
     private void ApplyDeadVisuals() { if (bodyRenderer) bodyRenderer.enabled = false; if (_cc) _cc.enabled = false; }
     private void UndoDeadVisuals()  { if (!IsOwner && bodyRenderer) bodyRenderer.enabled = true; if (_cc) _cc.enabled = true; }
 

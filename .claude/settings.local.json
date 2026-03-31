@@ -29,7 +29,8 @@
       "mcp__ai-game-developer__tool-list",
       "Bash(xargs grep:*)",
       "Bash(grep -v \"^  m_Name: $\")",
-      "mcp__ai-game-developer__assets-shader-list-all"
+      "mcp__ai-game-developer__assets-shader-list-all",
+      "mcp__ai-game-developer__gameobject-set-parent"
     ]
   },
   "enableAllProjectMcpServers": true,
