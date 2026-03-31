@@ -65,7 +65,7 @@ AnimationClip:
     m_AdditiveReferencePoseClip: {fileID: 0}
     m_AdditiveReferencePoseTime: 0
     m_StartTime: 0
-    m_StopTime: 9.016666
+    m_StopTime: 9.033334
     m_OrientationOffsetY: 0
     m_Level: 0
     m_CycleOffset: 0
@@ -174,4 +174,11 @@ AnimationClip:
   m_EulerEditorCurves: []
   m_HasGenericRootTransform: 1
   m_HasMotionFloatCurves: 0
-  m_Events: []
+  m_Events:
+  - time: 9.033334
+    functionName: OnMerchantShipLeave
+    data: 
+    objectReferenceParameter: {fileID: 11500000, guid: ba57cf70b3405a14a893e92cb3ac3e47, type: 3}
+    floatParameter: 0
+    intParameter: 0
+    messageOptions: 0
