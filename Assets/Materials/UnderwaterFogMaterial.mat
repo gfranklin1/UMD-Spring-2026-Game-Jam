@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Sky_LowPoly_Blended
-  m_Shader: {fileID: 4800000, guid: d0752085f4d76a04d91b74764b160bdf, type: 3}
+  m_Name: UnderwaterFogMaterial
+  m_Shader: {fileID: 4800000, guid: fc86f8823f776424a8e9b7e23653babf, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -22,21 +22,9 @@ Material:
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
-    m_TexEnvs:
-    - _Tex:
-        m_Texture: {fileID: 8900000, guid: 15941f70fce71784da1321794120ea6a, type: 3}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _Tex2:
-        m_Texture: {fileID: 8900000, guid: b4503954fd147c94180872808dde9eb3, type: 3}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
+    m_TexEnvs: []
     m_Ints: []
-    m_Floats:
-    - _Blend: 0.53162414
-    - _Exposure: 0.85
-    - _Rotation: 0
-    m_Colors:
-    - _Tint: {r: 0.651, g: 0.651, b: 0.651, a: 0.549}
+    m_Floats: []
+    m_Colors: []
   m_BuildTextureStacks: []
   m_AllowLocking: 1
