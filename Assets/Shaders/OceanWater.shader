@@ -12,6 +12,9 @@ Shader "Custom/OceanWater"
         _DepthFade      ("Depth Blend",     Range(0,1))   = 0.4
         _Smoothness     ("Smoothness",      Range(0,1))   = 0.75
         _FoamSharpness  ("Foam Sharpness",  Range(1,8))   = 3.0
+        _DepthFadeDistance ("Depth Fade Distance", Float)     = 8.0
+        _MinAlpha          ("Min Surface Alpha",   Range(0,1)) = 0.60
+        _MaxAlpha          ("Max Surface Alpha",   Range(0,1)) = 0.97
     }
 
     SubShader
@@ -44,6 +47,7 @@ Shader "Custom/OceanWater"
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
 
             struct Attributes
             {
@@ -60,6 +64,7 @@ Shader "Custom/OceanWater"
                 float3 normalWS    : TEXCOORD0;
                 float3 positionWS  : TEXCOORD1;
                 float4 color       : COLOR;
+                float4 screenPos   : TEXCOORD2;
                 UNITY_VERTEX_OUTPUT_STEREO
             };
 
@@ -70,6 +75,9 @@ Shader "Custom/OceanWater"
                 float  _DepthFade;
                 float  _Smoothness;
                 float  _FoamSharpness;
+                float  _DepthFadeDistance;
+                float  _MinAlpha;
+                float  _MaxAlpha;
             CBUFFER_END
 
             Varyings vert(Attributes IN)
@@ -85,6 +93,7 @@ Shader "Custom/OceanWater"
                 OUT.positionWS = posInputs.positionWS;
                 OUT.normalWS   = nrmInputs.normalWS;
                 OUT.color      = IN.color;
+                OUT.screenPos  = ComputeScreenPos(OUT.positionCS);
                 return OUT;
             }
 
@@ -117,6 +126,16 @@ Shader "Custom/OceanWater"
                 float3 halfDir = normalize(mainLight.direction + viewDir);
                 float  spec    = pow(saturate(dot(normalWS, halfDir)), 64.0 * _Smoothness + 1.0);
                 col.rgb += mainLight.color * spec * (1.0 - foam) * _Smoothness;
+
+                // ── Depth-based surface opacity ───────────────────────────────────
+                float2 screenUV    = IN.screenPos.xy / IN.screenPos.w;
+                float  rawDepth    = SampleSceneDepth(screenUV);
+                float  sceneEye    = LinearEyeDepth(rawDepth, _ZBufferParams);
+                float  waterEye    = IN.screenPos.w;
+                float  waterColumn = sceneEye - waterEye;
+                float  depthT      = saturate(waterColumn / _DepthFadeDistance);
+                float  baseAlpha   = lerp(_MinAlpha, _MaxAlpha, depthT);
+                col.a = lerp(baseAlpha, _FoamColor.a, foam);   // foam stays opaque; ocean scales by depth
 
                 return col;
             }

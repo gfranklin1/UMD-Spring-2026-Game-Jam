@@ -29,7 +29,8 @@
       "mcp__ai-game-developer__tool-list",
       "Bash(xargs grep:*)",
       "Bash(grep -v \"^  m_Name: $\")",
-      "mcp__ai-game-developer__assets-shader-list-all"
+      "mcp__ai-game-developer__assets-shader-list-all",
+      "Bash(find /c/Users/jacub/Downloads/UMD-Spring-2026-Game-Jam/Assets -type f \\\\\\(-name *Proc* -o -name *Gen* -o -name *Water* \\\\\\))"
     ]
   },
   "enableAllProjectMcpServers": true,
