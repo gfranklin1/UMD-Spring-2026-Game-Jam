@@ -19,6 +19,9 @@ public class QuotaManager : NetworkBehaviour
 
     // ── Networked state (server-write, everyone-read) ────────────────────────
 
+    // Seabed terrain seed — server picks once at session start; clients read it to generate identical terrain.
+    public NetworkVariable<int> SeabedSeed = new(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+
     private NetworkVariable<int>   _currentCycle    = new(0,  NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     private NetworkVariable<int>   _currentDay      = new(1,  NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     private NetworkVariable<float> _timeOfDay       = new(0.25f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
@@ -63,6 +66,8 @@ public class QuotaManager : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         Instance = this;
+        if (IsServer && SeabedSeed.Value == 0)
+            SeabedSeed.Value = UnityEngine.Random.Range(1, int.MaxValue);
         _currentDay.OnValueChanged  += (_, __) => OnDayChanged?.Invoke();
         _currentCycle.OnValueChanged += (_, __) => OnCycleChanged?.Invoke();
         _gameOver.OnValueChanged += (prev, cur) =>
