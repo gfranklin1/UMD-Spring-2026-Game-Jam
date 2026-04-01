@@ -77,6 +77,14 @@ public class PlayerInventory : MonoBehaviour
         OnInventoryChanged?.Invoke();
     }
 
+    public void Clear()
+    {
+        for (int i = 0; i < _slots.Length; i++)
+            _slots[i] = null;
+        _selectedIndex = 0;
+        OnInventoryChanged?.Invoke();
+    }
+
     public int TotalGoldValue()
     {
         int total = 0;

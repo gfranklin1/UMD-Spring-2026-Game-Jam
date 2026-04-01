@@ -13,6 +13,8 @@ public class SpectatorCamera : MonoBehaviour
     private PlayerController  _owner;
     private Transform         _cameraRoot;
     private Transform         _originalParent;
+    private Vector3           _originalLocalPosition;
+    private Quaternion        _originalLocalRotation;
     private PlayerController  _currentTarget;
     private SpectatorHUD      _hud;
     private float             _yaw;
@@ -20,11 +22,13 @@ public class SpectatorCamera : MonoBehaviour
 
     private void Awake()
     {
-        _owner          = GetComponent<PlayerController>();
-        _cameraRoot     = _owner.CameraRoot;
-        _originalParent = _cameraRoot != null ? _cameraRoot.parent : null;
-        _hud            = GetComponent<SpectatorHUD>();
-        enabled         = false;
+        _owner                 = GetComponent<PlayerController>();
+        _cameraRoot            = _owner.CameraRoot;
+        _originalParent        = _cameraRoot != null ? _cameraRoot.parent : null;
+        _originalLocalPosition = _cameraRoot != null ? _cameraRoot.localPosition : Vector3.zero;
+        _originalLocalRotation = _cameraRoot != null ? _cameraRoot.localRotation : Quaternion.identity;
+        _hud                   = GetComponent<SpectatorHUD>();
+        enabled                = false;
     }
 
     public void Activate()
@@ -49,8 +53,8 @@ public class SpectatorCamera : MonoBehaviour
         if (_cameraRoot != null && _originalParent != null)
         {
             _cameraRoot.SetParent(_originalParent, false);
-            _cameraRoot.localPosition = Vector3.zero;
-            _cameraRoot.localRotation = Quaternion.identity;
+            _cameraRoot.localPosition = _originalLocalPosition;
+            _cameraRoot.localRotation = _originalLocalRotation;
         }
         _currentTarget = null;
         enabled        = false;

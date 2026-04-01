@@ -136,9 +136,35 @@ public class SeabedManager : MonoBehaviour
             else Debug.LogWarning("[SeabedManager] shipTransform not assigned and 'Ship' not found.");
         }
 
+        if (QuotaManager.Instance != null)
+            QuotaManager.Instance.SeabedSeed.OnValueChanged += OnSeedChanged;
+
         // Try to initialise immediately if QuotaManager already has the seed.
         // If not yet available (client connecting before QuotaManager spawns), Update() polls.
         TryInitialize();
+    }
+
+    private void OnDestroy()
+    {
+        if (QuotaManager.Instance != null)
+            QuotaManager.Instance.SeabedSeed.OnValueChanged -= OnSeedChanged;
+    }
+
+    private void OnSeedChanged(int oldSeed, int newSeed)
+    {
+        if (newSeed == 0 || newSeed == oldSeed) return;
+
+        // Destroy all existing chunks and sites, then re-generate with the new seed
+        foreach (var chunk in _loadedChunks.Values)
+            if (chunk != null) Destroy(chunk);
+        _loadedChunks.Clear();
+        _knownSites.Clear();
+        _allSites.Clear();
+        _lastShipChunk = new Vector2Int(int.MinValue, int.MinValue);
+
+        seed       = 0; // clear inspector override so TryInitialize reads the new NetworkVariable seed
+        _generated = false;
+        // Update() will call TryInitialize() next frame to regenerate
     }
 
     private void Update()

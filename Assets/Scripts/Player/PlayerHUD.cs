@@ -38,7 +38,12 @@ public class PlayerHUD : NetworkBehaviour
     }
 
     public void HideForDeath()   { if (_hudCanvas) _hudCanvas.SetActive(false); enabled = false; }
-    public void ShowForRespawn() { if (_hudCanvas) _hudCanvas.SetActive(true);  enabled = true;  }
+    public void ShowForRespawn()
+    {
+        if (_hudCanvas) _hudCanvas.SetActive(true);
+        enabled = true;
+        GetComponent<InventoryHUD>()?.SnapHighlightNextFrame();
+    }
 
     public override void OnNetworkDespawn()
     {

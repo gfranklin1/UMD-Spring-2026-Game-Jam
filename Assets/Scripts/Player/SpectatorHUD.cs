@@ -5,6 +5,7 @@ using UnityEngine.UI;
 public class SpectatorHUD : MonoBehaviour
 {
     [SerializeField] private Text _nameText;
+    [SerializeField] private Text _quotaText;
 
     private GameObject _panel;
     private PlayerController _currentTarget;
@@ -31,6 +32,14 @@ public class SpectatorHUD : MonoBehaviour
 
         Show();
         RefreshName();
+    }
+
+    private void Update()
+    {
+        if (_quotaText == null || QuotaManager.Instance == null) return;
+        var qm   = QuotaManager.Instance;
+        int gold = GoldTracker.Instance?.TotalGold ?? 0;
+        _quotaText.text = $"Day {qm.CurrentDay}/{qm.DaysPerCycle}\nQuota: {gold}/{qm.CurrentQuotaTarget}g";
     }
 
     private void OnTargetNameChanged(FixedString64Bytes _, FixedString64Bytes newVal) => RefreshName();

@@ -25,6 +25,7 @@ public class InventoryHUD : MonoBehaviour
     private Vector3          _highlightTargetPos;
     private float[]          _slotFlashTimers;
     private ItemData[]       _prevSlots;
+    private bool             _started;
 
     private void Start()
     {
@@ -33,18 +34,34 @@ public class InventoryHUD : MonoBehaviour
         _slotFlashTimers = new float[slotFrames.Length];
         _prevSlots       = new ItemData[inventory != null ? inventory.MaxSlots : slotFrames.Length];
 
-        // Force layout calculation so slot positions are valid before we snap the highlight
-        Canvas.ForceUpdateCanvases();
-
-        if (selectionHighlight != null && slotFrames.Length > 0)
-        {
-            _highlightTargetPos = slotFrames[inventory != null ? inventory.SelectedIndex : 0].position;
-            selectionHighlight.rectTransform.position = _highlightTargetPos; // snap — no lerp on first frame
-        }
+        SnapHighlight();
 
         if (inventory != null)
             inventory.OnInventoryChanged += Refresh;
         Refresh();
+        _started = true;
+    }
+
+    // Called by PlayerHUD.ShowForRespawn() — waits a frame so Canvas layout is computed.
+    public void SnapHighlightNextFrame()
+    {
+        if (_started) StartCoroutine(SnapNextFrame());
+    }
+
+    private System.Collections.IEnumerator SnapNextFrame()
+    {
+        yield return null;
+        SnapHighlight();
+    }
+
+    private void SnapHighlight()
+    {
+        Canvas.ForceUpdateCanvases();
+        if (selectionHighlight != null && slotFrames != null && slotFrames.Length > 0 && inventory != null)
+        {
+            _highlightTargetPos = slotFrames[inventory.SelectedIndex].position;
+            selectionHighlight.rectTransform.position = _highlightTargetPos;
+        }
     }
 
     private void OnDestroy()

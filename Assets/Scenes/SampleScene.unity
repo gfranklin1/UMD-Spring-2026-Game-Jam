@@ -208,7 +208,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.InputActionReference
   m_Asset: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_ActionId: 9caa3d8a-6b2f-4e8e-8bad-6ede561bd9be
---- !u!4 &271840293 stripped
+--- !u!4 &301283605 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7020061116047172279, guid: 351a7313953226143bdd40e162bc30c5, type: 3}
   m_PrefabInstance: {fileID: 3042037794524865290}
@@ -1146,6 +1146,10 @@ PrefabInstance:
       propertyPath: GlobalObjectIdHash
       value: 1493353874
       objectReference: {fileID: 0}
+    - target: {fileID: 4582216581366544060, guid: eccc58ba997e9794b99cd3991df30d67, type: 3}
+      propertyPath: dayDurationSeconds
+      value: 90
+      objectReference: {fileID: 0}
     - target: {fileID: 8348286154911025396, guid: eccc58ba997e9794b99cd3991df30d67, type: 3}
       propertyPath: m_Name
       value: QuotaManager
@@ -1166,19 +1170,19 @@ PrefabInstance:
     - target: {fileID: 737710343152090329, guid: 7dcce3eda54dc6a4f98ce7add70657df, type: 3}
       propertyPath: 'spawnPoints.Array.data[0]'
       value: 
-      objectReference: {fileID: 1573709687}
+      objectReference: {fileID: 739366084}
     - target: {fileID: 737710343152090329, guid: 7dcce3eda54dc6a4f98ce7add70657df, type: 3}
       propertyPath: 'spawnPoints.Array.data[1]'
       value: 
-      objectReference: {fileID: 739366084}
+      objectReference: {fileID: 301283605}
     - target: {fileID: 737710343152090329, guid: 7dcce3eda54dc6a4f98ce7add70657df, type: 3}
       propertyPath: 'spawnPoints.Array.data[2]'
       value: 
-      objectReference: {fileID: 271840293}
+      objectReference: {fileID: 485354767}
     - target: {fileID: 737710343152090329, guid: 7dcce3eda54dc6a4f98ce7add70657df, type: 3}
       propertyPath: 'spawnPoints.Array.data[3]'
       value: 
-      objectReference: {fileID: 485354767}
+      objectReference: {fileID: 1573709687}
     - target: {fileID: 7309391487872889680, guid: 7dcce3eda54dc6a4f98ce7add70657df, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

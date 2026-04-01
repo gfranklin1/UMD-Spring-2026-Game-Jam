@@ -193,7 +193,10 @@ public class PlayerController : NetworkBehaviour
             _interactAction.canceled  -= OnInteractCanceled;
         }
         if (_quotaResetSubscribed && QuotaManager.Instance != null)
-            QuotaManager.Instance.OnGameReset -= OnQuotaReset;
+        {
+            QuotaManager.Instance.OnGameReset     -= OnQuotaReset;
+            QuotaManager.Instance.OnCycleAdvanced -= OnCycleAdvancedRevive;
+        }
         NetworkIsDead.OnValueChanged -= OnNetworkIsDeadChanged;
     }
 
@@ -203,6 +206,12 @@ public class PlayerController : NetworkBehaviour
         _hasDied = false;
         _health  = maxHealth;
         _oxygen  = maxBreathSeconds;
+
+        // Close chest UI if open
+        if (_openChest != null) CloseChest();
+
+        // Wipe inventory — full restart means fresh start for everyone
+        _inventory?.Clear();
 
         // Teleport back to spawn — must go through CharacterController
         _cc.enabled = false;
@@ -230,13 +239,53 @@ public class PlayerController : NetworkBehaviour
         else if (net) NetworkIsDead.Value = false;
     }
 
+    /// <summary>
+    /// Called on every client when the quota is met and a new cycle begins.
+    /// Only dead owners are affected — alive players keep playing uninterrupted.
+    /// </summary>
+    private void OnCycleAdvancedRevive()
+    {
+        if (!IsOwner || !_hasDied) return;
+
+        // Full fresh-spawn reset (same as OnQuotaReset, plus inventory wipe)
+        _hasDied = false;
+        _health  = maxHealth;
+        _oxygen  = maxBreathSeconds;
+
+        _cc.enabled = false;
+        transform.position = _spawnPosition;
+        _cc.enabled = true;
+
+        _holdStartTime = -1f;
+        _hasBoots      = false;
+        _bootKickTimer = 0f;
+        SetPumpFlowRate(0f);
+        _suitRack = null;
+        _networkWearingSuit.Value = false;
+        _cableSystem?.ClearAnchor();
+
+        _inventory?.Clear();
+
+        _state = PlayerState.OnDeck;
+        enabled = true;   // re-enable Update() — dead players have this disabled externally
+        GetComponent<SpectatorCamera>()?.Deactivate();
+        GetComponent<SpectatorHUD>()?.Hide();
+        GetComponent<PlayerHUD>()?.ShowForRespawn();
+        if (cameraRoot != null) { var pc = cameraRoot.GetComponent<PlayerCamera>(); if (pc) pc.enabled = true; }
+
+        bool net = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+        if (net && !IsServer) ClearDeadStateServerRpc();
+        else if (net) NetworkIsDead.Value = false;
+    }
+
     private void Update()
     {
-        // Subscribe to quota reset as soon as QuotaManager is available
+        // Subscribe to quota events as soon as QuotaManager is available
         if (!_quotaResetSubscribed && QuotaManager.Instance != null)
         {
             _quotaResetSubscribed = true;
-            QuotaManager.Instance.OnGameReset += OnQuotaReset;
+            QuotaManager.Instance.OnGameReset    += OnQuotaReset;
+            QuotaManager.Instance.OnCycleAdvanced += OnCycleAdvancedRevive;
         }
 
         // Game over — freeze everything

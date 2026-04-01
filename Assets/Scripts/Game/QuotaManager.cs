@@ -53,6 +53,7 @@ public class QuotaManager : NetworkBehaviour
 
     public event System.Action OnDayChanged;
     public event System.Action OnCycleChanged;
+    public event System.Action OnCycleAdvanced;   // fires on quota met (cycle increments mid-game)
     public event System.Action OnGameOverTriggered;
     public event System.Action OnGameReset;
 
@@ -68,8 +69,12 @@ public class QuotaManager : NetworkBehaviour
         Instance = this;
         if (IsServer && SeabedSeed.Value == 0)
             SeabedSeed.Value = UnityEngine.Random.Range(1, int.MaxValue);
-        _currentDay.OnValueChanged  += (_, __) => OnDayChanged?.Invoke();
-        _currentCycle.OnValueChanged += (_, __) => OnCycleChanged?.Invoke();
+        _currentDay.OnValueChanged   += (_, __) => OnDayChanged?.Invoke();
+        _currentCycle.OnValueChanged += (prev, next) =>
+        {
+            OnCycleChanged?.Invoke();
+            if (next > prev) OnCycleAdvanced?.Invoke(); // quota met → revive dead players
+        };
         _gameOver.OnValueChanged += (prev, cur) =>
         {
             if (cur)        OnGameOverTriggered?.Invoke();
@@ -145,6 +150,7 @@ public class QuotaManager : NetworkBehaviour
         _timeOfDay.Value       = 0.25f;
         _totalGoldEarned.Value = 0;
         _gameOverReason.Value  = 0;
+        SeabedSeed.Value       = UnityEngine.Random.Range(1, int.MaxValue); // new world each restart
         GoldTracker.Instance?.ResetGold();
         RespawnLoot();
         ResetSuitRacks();
