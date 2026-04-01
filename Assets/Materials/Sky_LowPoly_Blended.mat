@@ -33,7 +33,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _Blend: 0.49936
+    - _Blend: 0.50049835
     - _Exposure: 0.85
     - _Rotation: 0
     m_Colors:
