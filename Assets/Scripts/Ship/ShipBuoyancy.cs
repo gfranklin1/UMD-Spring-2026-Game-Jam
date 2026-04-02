@@ -11,10 +11,10 @@ public class ShipBuoyancy : MonoBehaviour
     [SerializeField] private OceanWaves oceanWaves;
 
     [Header("Hull Sample Points (local space)")]
-    [SerializeField] private Vector3 bowOffset       = new(0, 0, 10);
-    [SerializeField] private Vector3 sternOffset     = new(0, 0, -10);
-    [SerializeField] private Vector3 portOffset      = new(-5, 0, 0);
-    [SerializeField] private Vector3 starboardOffset = new(5, 0, 0);
+    [SerializeField] private Vector3 bowOffset       = new(0, 1, 13);
+    [SerializeField] private Vector3 sternOffset     = new(0, 1, -13);
+    [SerializeField] private Vector3 portOffset      = new(-4, 1, -4);
+    [SerializeField] private Vector3 starboardOffset = new(4, 1, -4);
 
     [Header("Smoothing")]
     [SerializeField] private float heightSmoothTime = 0.35f;
