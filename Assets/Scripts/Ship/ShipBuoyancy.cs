@@ -5,6 +5,7 @@ using UnityEngine;
 /// to set the ship's Y position and pitch/roll each frame.
 /// Runs on all clients (deterministic — no network sync needed).
 /// </summary>
+[DefaultExecutionOrder(-10)]
 public class ShipBuoyancy : MonoBehaviour
 {
     [Header("References")]
@@ -15,6 +16,10 @@ public class ShipBuoyancy : MonoBehaviour
     [SerializeField] private Vector3 sternOffset     = new(0, 1, -13);
     [SerializeField] private Vector3 portOffset      = new(-4, 1, -4);
     [SerializeField] private Vector3 starboardOffset = new(4, 1, -4);
+
+    [Header("Tilt")]
+    [SerializeField] private float tiltScale    = 0.3f;
+    [SerializeField] private float maxTiltAngle = 5f;
 
     [Header("Smoothing")]
     [SerializeField] private float heightSmoothTime = 0.35f;
@@ -35,7 +40,7 @@ public class ShipBuoyancy : MonoBehaviour
         _initialized = true;
     }
 
-    private void LateUpdate()
+    private void Update()
     {
         if (oceanWaves == null || !_initialized) return;
 
@@ -55,8 +60,8 @@ public class ShipBuoyancy : MonoBehaviour
         Vector3 shipForward = yawRot * Vector3.forward;
         Vector3 shipRight   = yawRot * Vector3.right;
 
-        float forwardSlope = bowY - sternY;
-        float rightSlope   = starboardY - portY;
+        float forwardSlope = (bowY - sternY) * tiltScale;
+        float rightSlope   = (starboardY - portY) * tiltScale;
         float forwardDist  = (bowOffset - sternOffset).magnitude;
         float rightDist    = (starboardOffset - portOffset).magnitude;
 
@@ -70,6 +75,9 @@ public class ShipBuoyancy : MonoBehaviour
         // Build target rotation: preserve yaw, apply pitch/roll from wave normal
         Vector3 adjustedForward = Vector3.ProjectOnPlane(shipForward, surfaceNormal).normalized;
         Quaternion targetRotation = Quaternion.LookRotation(adjustedForward, surfaceNormal);
+
+        // Clamp pitch/roll to maxTiltAngle
+        targetRotation = ClampTilt(targetRotation, yaw);
         _currentTiltRotation = Quaternion.Slerp(_currentTiltRotation, targetRotation, tiltSmoothSpeed * Time.deltaTime);
 
         // Apply position (keep XZ from ShipMovement, override Y)
@@ -77,5 +85,15 @@ public class ShipBuoyancy : MonoBehaviour
         pos.y = _currentY;
         transform.position = pos;
         transform.rotation = _currentTiltRotation;
+    }
+
+    private Quaternion ClampTilt(Quaternion rot, float yaw)
+    {
+        Vector3 euler = rot.eulerAngles;
+        float pitch = euler.x > 180f ? euler.x - 360f : euler.x;
+        float roll  = euler.z > 180f ? euler.z - 360f : euler.z;
+        pitch = Mathf.Clamp(pitch, -maxTiltAngle, maxTiltAngle);
+        roll  = Mathf.Clamp(roll,  -maxTiltAngle, maxTiltAngle);
+        return Quaternion.Euler(pitch, yaw, roll);
     }
 }

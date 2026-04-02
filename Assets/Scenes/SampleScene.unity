@@ -1358,6 +1358,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d159dea8a299c984db4497974adc9293, type: 3}
+--- !u!114 &1157628327485971790 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7682545998686656802, guid: d159dea8a299c984db4497974adc9293, type: 3}
+  m_PrefabInstance: {fileID: 1157628327485971789}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5faa456892be99e408cf2fafd7e3878c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::OceanWaves
 --- !u!1001 &1695666214212751108
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1471,66 +1482,10 @@ PrefabInstance:
       propertyPath: GlobalObjectIdHash
       value: 1459988173
       objectReference: {fileID: 0}
-    - target: {fileID: 2288650826351110800, guid: 351a7313953226143bdd40e162bc30c5, type: 3}
-      propertyPath: SceneMigrationSynchronization
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2288650826351110800, guid: 351a7313953226143bdd40e162bc30c5, type: 3}
-      propertyPath: InScenePlacedSourceGlobalObjectIdHash
-      value: 1605486614
-      objectReference: {fileID: 0}
     - target: {fileID: 2990854537480504972, guid: 351a7313953226143bdd40e162bc30c5, type: 3}
       propertyPath: oceanWaves
       value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 2990854537480504972, guid: 351a7313953226143bdd40e162bc30c5, type: 3}
-      propertyPath: bowOffset.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2990854537480504972, guid: 351a7313953226143bdd40e162bc30c5, type: 3}
-      propertyPath: bowOffset.z
-      value: 13
-      objectReference: {fileID: 0}
-    - target: {fileID: 2990854537480504972, guid: 351a7313953226143bdd40e162bc30c5, type: 3}
-      propertyPath: portOffset.x
-      value: -4
-      objectReference: {fileID: 0}
-    - target: {fileID: 2990854537480504972, guid: 351a7313953226143bdd40e162bc30c5, type: 3}
-      propertyPath: portOffset.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2990854537480504972, guid: 351a7313953226143bdd40e162bc30c5, type: 3}
-      propertyPath: portOffset.z
-      value: -4
-      objectReference: {fileID: 0}
-    - target: {fileID: 2990854537480504972, guid: 351a7313953226143bdd40e162bc30c5, type: 3}
-      propertyPath: sternOffset.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2990854537480504972, guid: 351a7313953226143bdd40e162bc30c5, type: 3}
-      propertyPath: sternOffset.z
-      value: -13
-      objectReference: {fileID: 0}
-    - target: {fileID: 2990854537480504972, guid: 351a7313953226143bdd40e162bc30c5, type: 3}
-      propertyPath: tiltSmoothSpeed
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2990854537480504972, guid: 351a7313953226143bdd40e162bc30c5, type: 3}
-      propertyPath: heightSmoothTime
-      value: 0.55
-      objectReference: {fileID: 0}
-    - target: {fileID: 2990854537480504972, guid: 351a7313953226143bdd40e162bc30c5, type: 3}
-      propertyPath: starboardOffset.x
-      value: 4
-      objectReference: {fileID: 0}
-    - target: {fileID: 2990854537480504972, guid: 351a7313953226143bdd40e162bc30c5, type: 3}
-      propertyPath: starboardOffset.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2990854537480504972, guid: 351a7313953226143bdd40e162bc30c5, type: 3}
-      propertyPath: starboardOffset.z
-      value: -4
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 1157628327485971790}
     - target: {fileID: 5857936560471577747, guid: 351a7313953226143bdd40e162bc30c5, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

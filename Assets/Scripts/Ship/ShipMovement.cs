@@ -7,6 +7,7 @@ using UnityEngine;
 /// Only the server writes position/rotation; NetworkTransform syncs to clients.
 /// NetworkTransform should sync XZ position + Y rotation only (buoyancy handles the rest).
 /// </summary>
+[DefaultExecutionOrder(-50)]
 public class ShipMovement : NetworkBehaviour
 {
     [Header("Wind")]

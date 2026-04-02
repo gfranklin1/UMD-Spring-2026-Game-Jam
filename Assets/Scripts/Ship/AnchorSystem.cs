@@ -205,7 +205,7 @@ public class AnchorSystem : NetworkBehaviour, IInteractable
     {
         if (_anchorVisual != null) return;
         if (anchorVisualPrefab != null)
-            _anchorVisual = Instantiate(anchorVisualPrefab, position, Quaternion.identity);
+            _anchorVisual = Instantiate(anchorVisualPrefab, position, anchorVisualPrefab.transform.rotation);
         if (anchorRope != null) anchorRope.enabled = true;
     }
 

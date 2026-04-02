@@ -3,6 +3,7 @@ using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+[DefaultExecutionOrder(50)]
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : NetworkBehaviour
 {
@@ -70,10 +71,11 @@ public class PlayerController : NetworkBehaviour
     private bool _quotaResetSubscribed = false;
     private const float InteractRange = 2.5f;
 
-    // Moving platform tracking (ship riding)
+    // Moving platform tracking (ship riding) — simulated parenting via local-space offsets
     private Transform _platformTransform;
-    private Vector3 _lastPlatformPosition;
-    private Quaternion _lastPlatformRotation;
+    private Vector3 _localPlatformPosition;     // player pos in ship-local space
+    private float _lastPlatformYaw;             // ship yaw last frame (for yaw-delta only)
+    private float _platformGraceTimer;
 
     public StorageChest CurrentOpenChest => _openChest;
     public event System.Action<StorageChest> OnChestOpened;
@@ -313,6 +315,20 @@ public class PlayerController : NetworkBehaviour
 
         ScanForInteractables();
         ScanForLoot();
+
+        // Release from station if player goes underwater (e.g. ship sinks)
+        if (_state == PlayerState.AtStation && oceanWaves != null)
+        {
+            float waveH = oceanWaves.GetWaveHeight(transform.position);
+            if (transform.position.y < waveH)
+            {
+                ReleaseFromStation();
+                _preDiveState = PlayerState.OnDeck;
+                _state = PlayerState.Underwater;
+                if (_verticalVelocity > 0f) _verticalVelocity = 0f;
+            }
+        }
+
         switch (_state)
         {
             case PlayerState.OnDeck:
@@ -370,6 +386,8 @@ public class PlayerController : NetworkBehaviour
                 if (kb.digit5Key.wasPressedThisFrame) _inventory.SelectSlot(4);
             }
         }
+
+        SyncLocalPlatformOffset();
     }
 
     private void UpdateWaterState()
@@ -403,12 +421,11 @@ public class PlayerController : NetworkBehaviour
         if (_state == PlayerState.Underwater || _state == PlayerState.Dead)
         {
             _platformTransform = null;
+            _platformGraceTimer = 0f;
             return;
         }
 
-        // Raycast generously downward — don't require isGrounded because
-        // the ship bobs with waves and the player may briefly lose contact.
-        float rayDist = _cc.height + 2f;
+        float rayDist = _cc.height + 3f;
         if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit hit, rayDist))
         {
             var ship = hit.collider.GetComponentInParent<ShipMovement>();
@@ -416,37 +433,57 @@ public class PlayerController : NetworkBehaviour
             {
                 if (_platformTransform != ship.transform)
                 {
+                    // First acquisition: snapshot local offset
                     _platformTransform = ship.transform;
-                    _lastPlatformPosition = _platformTransform.position;
-                    _lastPlatformRotation = _platformTransform.rotation;
+                    _localPlatformPosition = _platformTransform.InverseTransformPoint(transform.position);
+                    _lastPlatformYaw = _platformTransform.eulerAngles.y;
                 }
+                _platformGraceTimer = 0.5f;
                 return;
             }
+        }
+
+        if (_platformGraceTimer > 0f)
+        {
+            _platformGraceTimer -= Time.deltaTime;
+            return;
         }
         _platformTransform = null;
     }
 
+    /// <summary>
+    /// Repositions the player to match the ship's current transform using stored local offset.
+    /// Disables CharacterController during the teleport to bypass collision rejection.
+    /// Only applies yaw delta (not pitch/roll) so mouse look isn't overridden.
+    /// </summary>
     private void ApplyPlatformDelta()
     {
         if (_platformTransform == null) return;
 
-        Vector3 deltaPos = _platformTransform.position - _lastPlatformPosition;
-        Quaternion deltaRot = _platformTransform.rotation * Quaternion.Inverse(_lastPlatformRotation);
+        Vector3 targetPos = _platformTransform.TransformPoint(_localPlatformPosition);
 
-        if (deltaPos.sqrMagnitude > 0.0001f || Quaternion.Angle(deltaRot, Quaternion.identity) > 0.01f)
-        {
-            // Positional delta
-            _cc.Move(deltaPos);
+        float currentPlatformYaw = _platformTransform.eulerAngles.y;
+        float yawDelta = Mathf.DeltaAngle(_lastPlatformYaw, currentPlatformYaw);
 
-            // Rotational delta: orbit player around ship pivot and rotate facing
-            Vector3 offset = transform.position - _platformTransform.position;
-            Vector3 rotatedOffset = deltaRot * offset;
-            _cc.Move(rotatedOffset - offset);
-            transform.rotation = deltaRot * transform.rotation;
-        }
+        // Disable CC so collision doesn't reject the repositioning
+        _cc.enabled = false;
+        // TransformPoint already orbits the position to account for ship rotation —
+        // only rotate the player's facing direction, don't reposition.
+        transform.position = targetPos;
+        if (Mathf.Abs(yawDelta) > 0.01f)
+            transform.Rotate(0f, yawDelta, 0f, Space.World);
+        _cc.enabled = true;
 
-        _lastPlatformPosition = _platformTransform.position;
-        _lastPlatformRotation = _platformTransform.rotation;
+        _lastPlatformYaw = currentPlatformYaw;
+    }
+
+    /// <summary>
+    /// Records the player's position in ship-local space AFTER all movement for this frame.
+    /// </summary>
+    private void SyncLocalPlatformOffset()
+    {
+        if (_platformTransform == null) return;
+        _localPlatformPosition = _platformTransform.InverseTransformPoint(transform.position);
     }
 
     private void HandleDeckMovement()
