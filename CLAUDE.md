@@ -69,7 +69,24 @@ void   OnInteractStart / OnInteractHold / OnInteractCancel / Release(PlayerContr
 
 `HoldDurationFor` is viewer-aware — e.g. `DivingSuitRack` returns `0f` for non-wearers viewing an occupied suit (suppresses the hold ring in the HUD).
 
-Implementations: `DivingSuitRack`, `AirPumpStation`, `StorageChest`, `InteractableStation`.
+Implementations: `DivingSuitRack`, `AirPumpStation`, `StorageChest`, `InteractableStation`, `HelmStation`, `AnchorSystem`.
+
+### Ship Systems
+
+Scripts live in `Assets/Scripts/Ship/`. The Ship prefab needs `NetworkObject` + `NetworkTransform` (sync XZ pos + Y rot only; buoyancy handles the rest locally).
+
+| Class | Role |
+|---|---|
+| `ShipMovement` | Server-authoritative locomotion. Wind-driven forward thrust (Perlin noise varies speed), A/D yaw steering via `SetSteeringInputServerRpc`. Turn rate scales with speed. |
+| `ShipBuoyancy` | Cosmetic wave-following on all clients. Samples `OceanWaves.GetWaveHeight()` at 4 hull points (bow/stern/port/starboard) → sets Y position + pitch/roll. Runs in `LateUpdate` after `ShipMovement` sets XZ/yaw. |
+| `HelmStation` | `IInteractable` for the ship's wheel. Locks player to station; A/D steers without releasing (unlike generic stations). Wind drives speed automatically while helm is occupied. |
+| `AnchorSystem` | `IInteractable` with state machine: `Stowed → Dropping → Deployed → Raising → Stowed`. Dropping sends anchor to ocean floor (`SeabedManager.GetFloorY`), zeroes ship speed. Raising slowly reels anchor back. LineRenderer rope with catenary sag. |
+
+**Moving platform**: `PlayerController` tracks the ship via `UpdatePlatformTracking()` / `ApplyPlatformDelta()` — applies the ship's frame-to-frame position/rotation delta to the player so `CharacterController` riders stay planted on deck.
+
+**HandleAtStationState** has station-specific branches: `HelmStation` (steering input, no release on move), `AirPumpStation` (crank on Space).
+
+**OceanWaves** follows the ship transform each frame (`transform.position = ship XZ`) so the ocean mesh stays under the vessel.
 
 ### UI / HUD Notes
 

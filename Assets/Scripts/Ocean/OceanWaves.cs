@@ -30,6 +30,11 @@ public class OceanWaves : MonoBehaviour
     }
 
     // ─────────────────────────────────────────────────────────────
+    [Header("Ship Following")]
+    [Tooltip("Ocean grid follows this transform so it stays under the ship as it sails")]
+    public Transform shipTransform;
+
+    // ─────────────────────────────────────────────────────────────
     [Header("Ocean Mesh")]
     [Tooltip("Grid cells per side — 30-50 gives a good low-poly look")]
     public int   gridSize = 40;
@@ -80,6 +85,12 @@ public class OceanWaves : MonoBehaviour
     {
         RefreshMaxAmplitude();
         BuildFlatMesh();
+
+        if (shipTransform == null)
+        {
+            var shipGO = GameObject.Find("Ship");
+            if (shipGO != null) shipTransform = shipGO.transform;
+        }
     }
 
     private void OnValidate()
@@ -89,6 +100,10 @@ public class OceanWaves : MonoBehaviour
 
     private void Update()
     {
+        // Keep ocean grid centered on the ship so the mesh is always under the vessel
+        if (shipTransform != null)
+            transform.position = new Vector3(shipTransform.position.x, 0f, shipTransform.position.z);
+
         if (_mesh == null || _restXZ == null) return;
 
         float time   = Time.time;

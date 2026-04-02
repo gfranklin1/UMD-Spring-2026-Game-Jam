@@ -164,7 +164,7 @@ public class DiveCableSystem : NetworkBehaviour
         if (_cc == null) _cc = GetComponent<CharacterController>();
 
         if (_pumpStation == null)
-            _pumpStation = FindObjectOfType<AirPumpStation>();
+            _pumpStation = FindFirstObjectByType<AirPumpStation>();
         if (_pumpStation != null)
             _airAnchorPos = _pumpStation.HosePosition;
     }
@@ -177,7 +177,7 @@ public class DiveCableSystem : NetworkBehaviour
 
         if (_pumpStation == null)
         {
-            _pumpStation = FindObjectOfType<AirPumpStation>();
+            _pumpStation = FindFirstObjectByType<AirPumpStation>();
             if (_pumpStation == null) return;
         }
         _airAnchorPos = _pumpStation.HosePosition;
@@ -286,7 +286,7 @@ public class DiveCableSystem : NetworkBehaviour
         s_allRopeColliders.AddRange(ropeColliders);
 
         // Ignore collisions with all currently spawned players
-        foreach (var playerCC in FindObjectsOfType<CharacterController>())
+        foreach (var playerCC in FindObjectsByType<CharacterController>(FindObjectsSortMode.None))
             foreach (var col in ropeColliders)
                 Physics.IgnoreCollision(col, playerCC);
 

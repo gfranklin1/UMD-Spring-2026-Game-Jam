@@ -3,6 +3,7 @@ using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+[DefaultExecutionOrder(50)]
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : NetworkBehaviour
 {
@@ -70,6 +71,12 @@ public class PlayerController : NetworkBehaviour
     private bool _quotaResetSubscribed = false;
     private const float InteractRange = 2.5f;
 
+    // Moving platform tracking (ship riding) — simulated parenting via local-space offsets
+    private Transform _platformTransform;
+    private Vector3 _localPlatformPosition;     // player pos in ship-local space
+    private float _lastPlatformYaw;             // ship yaw last frame (for yaw-delta only)
+    private float _platformGraceTimer;
+
     public StorageChest CurrentOpenChest => _openChest;
     public event System.Action<StorageChest> OnChestOpened;
     public event System.Action               OnChestClosed;
@@ -107,7 +114,7 @@ public class PlayerController : NetworkBehaviour
     private void Start()
     {
         if (oceanWaves == null)
-            oceanWaves = FindObjectOfType<OceanWaves>();
+            oceanWaves = FindFirstObjectByType<OceanWaves>();
     }
 
     public override void OnNetworkSpawn()
@@ -280,6 +287,10 @@ public class PlayerController : NetworkBehaviour
 
     private void Update()
     {
+        // Only the owning client controls this player
+        bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+        if (networked && !IsOwner) return;
+
         // Subscribe to quota events as soon as QuotaManager is available
         if (!_quotaResetSubscribed && QuotaManager.Instance != null)
         {
@@ -303,8 +314,25 @@ public class PlayerController : NetworkBehaviour
             return;
         }
 
+        UpdatePlatformTracking();
+        ApplyPlatformDelta();
+
         ScanForInteractables();
         ScanForLoot();
+
+        // Release from station if player goes underwater (e.g. ship sinks)
+        if (_state == PlayerState.AtStation && oceanWaves != null)
+        {
+            float waveH = oceanWaves.GetWaveHeight(transform.position);
+            if (transform.position.y < waveH)
+            {
+                ReleaseFromStation();
+                _preDiveState = PlayerState.OnDeck;
+                _state = PlayerState.Underwater;
+                if (_verticalVelocity > 0f) _verticalVelocity = 0f;
+            }
+        }
+
         switch (_state)
         {
             case PlayerState.OnDeck:
@@ -329,7 +357,6 @@ public class PlayerController : NetworkBehaviour
         if (_dropAction != null && _dropAction.WasPressedThisFrame() && _state != PlayerState.AtStation)
         {
             Vector3 dropPos = transform.position + transform.forward + Vector3.up * 0.5f;
-            bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
             if (networked)
             {
                 var item = _inventory?.Slots[_inventory.SelectedIndex];
@@ -362,6 +389,8 @@ public class PlayerController : NetworkBehaviour
                 if (kb.digit5Key.wasPressedThisFrame) _inventory.SelectSlot(4);
             }
         }
+
+        SyncLocalPlatformOffset();
     }
 
     private void UpdateWaterState()
@@ -388,6 +417,76 @@ public class PlayerController : NetworkBehaviour
             if (_verticalVelocity < 0f) _verticalVelocity = 0f;
             Debug.Log($"[Player] Surfaced → {_state}");
         }
+    }
+
+    private void UpdatePlatformTracking()
+    {
+        if (_state == PlayerState.Underwater || _state == PlayerState.Dead)
+        {
+            _platformTransform = null;
+            _platformGraceTimer = 0f;
+            return;
+        }
+
+        float rayDist = _cc.height + 3f;
+        if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit hit, rayDist))
+        {
+            var ship = hit.collider.GetComponentInParent<ShipMovement>();
+            if (ship != null)
+            {
+                if (_platformTransform != ship.transform)
+                {
+                    // First acquisition: snapshot local offset
+                    _platformTransform = ship.transform;
+                    _localPlatformPosition = _platformTransform.InverseTransformPoint(transform.position);
+                    _lastPlatformYaw = _platformTransform.eulerAngles.y;
+                }
+                _platformGraceTimer = 0.5f;
+                return;
+            }
+        }
+
+        if (_platformGraceTimer > 0f)
+        {
+            _platformGraceTimer -= Time.deltaTime;
+            return;
+        }
+        _platformTransform = null;
+    }
+
+    /// <summary>
+    /// Repositions the player to match the ship's current transform using stored local offset.
+    /// Disables CharacterController during the teleport to bypass collision rejection.
+    /// Only applies yaw delta (not pitch/roll) so mouse look isn't overridden.
+    /// </summary>
+    private void ApplyPlatformDelta()
+    {
+        if (_platformTransform == null) return;
+
+        Vector3 targetPos = _platformTransform.TransformPoint(_localPlatformPosition);
+
+        float currentPlatformYaw = _platformTransform.eulerAngles.y;
+        float yawDelta = Mathf.DeltaAngle(_lastPlatformYaw, currentPlatformYaw);
+
+        // Disable CC so collision doesn't reject the repositioning
+        _cc.enabled = false;
+        // TransformPoint already orbits the position to account for ship rotation —
+        // only rotate the player's facing direction, don't reposition.
+        transform.position = targetPos;
+        if (Mathf.Abs(yawDelta) > 0.01f)
+            transform.Rotate(0f, yawDelta, 0f, Space.World);
+        _cc.enabled = true;
+
+        _lastPlatformYaw = currentPlatformYaw;
+    }
+
+    /// <summary>
+    /// Records the player's position in ship-local space AFTER all movement for this frame.
+    /// </summary>
+    private void SyncLocalPlatformOffset()
+    {
+        if (_platformTransform == null) return;
+        _localPlatformPosition = _platformTransform.InverseTransformPoint(transform.position);
     }
 
     private void HandleDeckMovement()
@@ -537,6 +636,14 @@ public class PlayerController : NetworkBehaviour
 
     private void HandleAtStationState()
     {
+        // Helm station: A/D steers, wind drives speed — do NOT release on move input.
+        // No gravity or _cc.Move here — platform tracking handles all positioning.
+        if (_currentStation is HelmStation helm)
+        {
+            helm.HandleInput(_moveAction);
+            return;
+        }
+
         var moveInput = _moveAction?.ReadValue<Vector2>() ?? Vector2.zero;
         if (moveInput.magnitude > 0.1f) { ReleaseFromStation(); return; }
 
