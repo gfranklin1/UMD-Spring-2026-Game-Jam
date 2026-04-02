@@ -34,7 +34,7 @@ public class ShipBuoyancy : MonoBehaviour
     private void Start()
     {
         if (oceanWaves == null)
-            oceanWaves = FindObjectOfType<OceanWaves>();
+            oceanWaves = FindFirstObjectByType<OceanWaves>();
         _shipMovement = GetComponent<ShipMovement>();
         _currentY = transform.position.y;
         _initialized = true;

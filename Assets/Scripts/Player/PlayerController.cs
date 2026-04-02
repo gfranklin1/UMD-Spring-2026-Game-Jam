@@ -114,7 +114,7 @@ public class PlayerController : NetworkBehaviour
     private void Start()
     {
         if (oceanWaves == null)
-            oceanWaves = FindObjectOfType<OceanWaves>();
+            oceanWaves = FindFirstObjectByType<OceanWaves>();
     }
 
     public override void OnNetworkSpawn()
@@ -287,6 +287,10 @@ public class PlayerController : NetworkBehaviour
 
     private void Update()
     {
+        // Only the owning client controls this player
+        bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+        if (networked && !IsOwner) return;
+
         // Subscribe to quota events as soon as QuotaManager is available
         if (!_quotaResetSubscribed && QuotaManager.Instance != null)
         {
@@ -353,7 +357,6 @@ public class PlayerController : NetworkBehaviour
         if (_dropAction != null && _dropAction.WasPressedThisFrame() && _state != PlayerState.AtStation)
         {
             Vector3 dropPos = transform.position + transform.forward + Vector3.up * 0.5f;
-            bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
             if (networked)
             {
                 var item = _inventory?.Slots[_inventory.SelectedIndex];
@@ -633,15 +636,11 @@ public class PlayerController : NetworkBehaviour
 
     private void HandleAtStationState()
     {
-        // Helm station: A/D steers, wind drives speed — do NOT release on move input
+        // Helm station: A/D steers, wind drives speed — do NOT release on move input.
+        // No gravity or _cc.Move here — platform tracking handles all positioning.
         if (_currentStation is HelmStation helm)
         {
             helm.HandleInput(_moveAction);
-            // Apply gravity so the player stays grounded on the moving ship
-            if (_cc.isGrounded && _verticalVelocity < 0f)
-                _verticalVelocity = -2f;
-            _verticalVelocity += gravity * Time.deltaTime;
-            _cc.Move(Vector3.up * _verticalVelocity * Time.deltaTime);
             return;
         }
 

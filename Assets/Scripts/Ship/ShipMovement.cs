@@ -25,15 +25,22 @@ public class ShipMovement : NetworkBehaviour
     private float _currentSpeed;
     private float _currentYaw;
     private float _steeringInput; // -1 to 1
-    private bool  _helmOccupied;
     private bool  _isAnchored;
     private float _windSeed;
+
+    /// <summary>Synced so all clients know when the helm is occupied (single-occupancy gate).</summary>
+    private NetworkVariable<bool> _helmOccupied = new NetworkVariable<bool>(false,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server);
 
     /// <summary>Current yaw in degrees. Read by ShipBuoyancy to preserve yaw.</summary>
     public float CurrentYaw => _currentYaw;
 
     /// <summary>Current forward speed. Can be read by HUD or other systems.</summary>
     public float CurrentSpeed => _currentSpeed;
+
+    /// <summary>True on all clients when someone is at the helm.</summary>
+    public bool IsHelmOccupied => _helmOccupied.Value;
 
     public override void OnNetworkSpawn()
     {
@@ -58,7 +65,7 @@ public class ShipMovement : NetworkBehaviour
         float windT = Mathf.PerlinNoise(_windSeed, Time.time * windChangeSpeed);
         float windSpeed = Mathf.Lerp(minWindSpeed, maxWindSpeed, windT);
 
-        if (_helmOccupied && !_isAnchored)
+        if (_helmOccupied.Value && !_isAnchored)
         {
             // Accelerate toward wind speed
             _currentSpeed = Mathf.MoveTowards(_currentSpeed, windSpeed, windSpeed * dt);
@@ -92,7 +99,7 @@ public class ShipMovement : NetworkBehaviour
     [ServerRpc(RequireOwnership = false)]
     public void SetHelmOccupiedServerRpc(bool occupied)
     {
-        _helmOccupied = occupied;
+        _helmOccupied.Value = occupied;
         if (!occupied) _steeringInput = 0f;
     }
 
@@ -116,7 +123,7 @@ public class ShipMovement : NetworkBehaviour
 
     public void SetHelmOccupiedLocal(bool occupied)
     {
-        _helmOccupied = occupied;
+        _helmOccupied.Value = occupied;
         if (!occupied) _steeringInput = 0f;
     }
 }

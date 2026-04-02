@@ -33,7 +33,7 @@ public class MainMenuUI : MonoBehaviour
     private void Awake()
     {
         // Disable the old OnGUI HUD
-        var netHud = FindObjectOfType<NetworkHUD>();
+        var netHud = FindFirstObjectByType<NetworkHUD>();
         if (netHud != null) netHud.enabled = false;
 
         // Cache NetworkSetup

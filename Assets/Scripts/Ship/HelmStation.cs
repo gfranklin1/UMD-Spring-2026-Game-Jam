@@ -17,13 +17,16 @@ public class HelmStation : MonoBehaviour, IInteractable
 
     public string GetPromptText(PlayerController viewer)
     {
-        return _operator == null ? $"[E] Use {stationName}" : "In use";
+        bool occupied = shipMovement != null && shipMovement.IsHelmOccupied;
+        return !occupied ? $"[E] Use {stationName}" : "Helm is occupied";
     }
 
     public float HoldDurationFor(PlayerController viewer) => 0f;
 
     public void OnInteractStart(PlayerController player)
     {
+        // Block if helm is already occupied (networked check — works on all clients)
+        if (shipMovement != null && shipMovement.IsHelmOccupied) return;
         if (_operator != null) return;
         _operator = player;
         player.LockToStation(this);
