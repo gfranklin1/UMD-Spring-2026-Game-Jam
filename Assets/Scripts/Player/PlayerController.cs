@@ -70,6 +70,11 @@ public class PlayerController : NetworkBehaviour
     private bool _quotaResetSubscribed = false;
     private const float InteractRange = 2.5f;
 
+    // Moving platform tracking (ship riding)
+    private Transform _platformTransform;
+    private Vector3 _lastPlatformPosition;
+    private Quaternion _lastPlatformRotation;
+
     public StorageChest CurrentOpenChest => _openChest;
     public event System.Action<StorageChest> OnChestOpened;
     public event System.Action               OnChestClosed;
@@ -303,6 +308,9 @@ public class PlayerController : NetworkBehaviour
             return;
         }
 
+        UpdatePlatformTracking();
+        ApplyPlatformDelta();
+
         ScanForInteractables();
         ScanForLoot();
         switch (_state)
@@ -388,6 +396,57 @@ public class PlayerController : NetworkBehaviour
             if (_verticalVelocity < 0f) _verticalVelocity = 0f;
             Debug.Log($"[Player] Surfaced → {_state}");
         }
+    }
+
+    private void UpdatePlatformTracking()
+    {
+        if (_state == PlayerState.Underwater || _state == PlayerState.Dead)
+        {
+            _platformTransform = null;
+            return;
+        }
+
+        // Raycast generously downward — don't require isGrounded because
+        // the ship bobs with waves and the player may briefly lose contact.
+        float rayDist = _cc.height + 2f;
+        if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit hit, rayDist))
+        {
+            var ship = hit.collider.GetComponentInParent<ShipMovement>();
+            if (ship != null)
+            {
+                if (_platformTransform != ship.transform)
+                {
+                    _platformTransform = ship.transform;
+                    _lastPlatformPosition = _platformTransform.position;
+                    _lastPlatformRotation = _platformTransform.rotation;
+                }
+                return;
+            }
+        }
+        _platformTransform = null;
+    }
+
+    private void ApplyPlatformDelta()
+    {
+        if (_platformTransform == null) return;
+
+        Vector3 deltaPos = _platformTransform.position - _lastPlatformPosition;
+        Quaternion deltaRot = _platformTransform.rotation * Quaternion.Inverse(_lastPlatformRotation);
+
+        if (deltaPos.sqrMagnitude > 0.0001f || Quaternion.Angle(deltaRot, Quaternion.identity) > 0.01f)
+        {
+            // Positional delta
+            _cc.Move(deltaPos);
+
+            // Rotational delta: orbit player around ship pivot and rotate facing
+            Vector3 offset = transform.position - _platformTransform.position;
+            Vector3 rotatedOffset = deltaRot * offset;
+            _cc.Move(rotatedOffset - offset);
+            transform.rotation = deltaRot * transform.rotation;
+        }
+
+        _lastPlatformPosition = _platformTransform.position;
+        _lastPlatformRotation = _platformTransform.rotation;
     }
 
     private void HandleDeckMovement()
@@ -537,6 +596,18 @@ public class PlayerController : NetworkBehaviour
 
     private void HandleAtStationState()
     {
+        // Helm station: A/D steers, wind drives speed — do NOT release on move input
+        if (_currentStation is HelmStation helm)
+        {
+            helm.HandleInput(_moveAction);
+            // Apply gravity so the player stays grounded on the moving ship
+            if (_cc.isGrounded && _verticalVelocity < 0f)
+                _verticalVelocity = -2f;
+            _verticalVelocity += gravity * Time.deltaTime;
+            _cc.Move(Vector3.up * _verticalVelocity * Time.deltaTime);
+            return;
+        }
+
         var moveInput = _moveAction?.ReadValue<Vector2>() ?? Vector2.zero;
         if (moveInput.magnitude > 0.1f) { ReleaseFromStation(); return; }
 
