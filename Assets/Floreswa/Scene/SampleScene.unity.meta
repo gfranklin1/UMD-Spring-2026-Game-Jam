@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: bfc401a16d438de498be934d79641f4e
+guid: 5c279b1e9a86b96479101a8f812e696c
 DefaultImporter:
   externalObjects: {}
   userData: 
@@ -7,8 +7,8 @@ DefaultImporter:
   assetBundleVariant: 
 AssetOrigin:
   serializedVersion: 1
-  productId: 202232
-  packageName: Fish - PolyPack
+  productId: 339618
+  packageName: Low Poly Fish
   packageVersion: 1.0
-  assetPath: Assets/Models/Fish/Scene/Showcase.unity
-  uploadId: 450755
+  assetPath: Assets/Floreswa/Scene/SampleScene.unity
+  uploadId: 804744
