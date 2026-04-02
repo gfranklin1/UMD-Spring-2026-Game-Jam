@@ -32,7 +32,11 @@
       "mcp__ai-game-developer__assets-shader-list-all",
       "mcp__ai-game-developer__assets-shader-get-data",
       "mcp__ai-game-developer__gameobject-component-list-all",
-      "mcp__ai-game-developer__gameobject-duplicate"
+      "mcp__ai-game-developer__gameobject-duplicate",
+      "Bash(npx unity-mcp-cli:*)",
+      "Bash(node -e ':*)",
+      "Bash(rm _fish_spawner_input.json)",
+      "Bash(rm _tmp_input.json)"
     ]
   },
   "enableAllProjectMcpServers": true,

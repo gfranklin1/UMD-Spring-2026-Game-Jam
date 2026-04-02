@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 2fb93ff3c1250a74ca5f53a6bc162675
+guid: 3e0c41d9c65d16440a88cc8f1775ec3c
 PrefabImporter:
   externalObjects: {}
   userData: 
@@ -7,8 +7,8 @@ PrefabImporter:
   assetBundleVariant: 
 AssetOrigin:
   serializedVersion: 1
-  productId: 202232
-  packageName: Fish - PolyPack
+  productId: 339618
+  packageName: Low Poly Fish
   packageVersion: 1.0
-  assetPath: Assets/Models/Fish/Prefabs/SharkV1.prefab
-  uploadId: 450755
+  assetPath: Assets/Floreswa/Prefabs/fish02_shade.prefab
+  uploadId: 804744
