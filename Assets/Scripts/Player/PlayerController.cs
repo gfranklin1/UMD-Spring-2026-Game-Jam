@@ -95,6 +95,9 @@ public class PlayerController : NetworkBehaviour
     public StorageChest CurrentOpenChest => _openChest;
     public event System.Action<StorageChest> OnChestOpened;
     public event System.Action               OnChestClosed;
+    public event System.Action               OnUIClosed;
+    public event System.Action               OnOpenBuyScreen;
+    public event System.Action               OnOpenSellScreen;
     private float _health;
     private float _oxygen;
     private float _currentSpeed;
