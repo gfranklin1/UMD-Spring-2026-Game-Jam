@@ -20,6 +20,7 @@ public class PlayerController : NetworkBehaviour
     [SerializeField] private float surfaceFloatDepth = 1.2f;
     [SerializeField] private float buoyancySpring = 6f;
     [SerializeField] private float speedChangeRate = 15f;  // units/s — acceleration rate between walk and sprint
+    [SerializeField] private Animator playerAnim; 
 
     [Header("Diving Boots")]
     [SerializeField] private float bootSinkSpeed    = 8f;   // max downward speed (no buoyancy)
@@ -333,6 +334,17 @@ public class PlayerController : NetworkBehaviour
             }
         }
 
+        bool onFoot = _state == PlayerState.OnDeck || _state == PlayerState.WearingSuit;
+        if (!onFoot && playerAnim != null)
+        {
+            playerAnim.SetBool("IsRunning", false);
+            playerAnim.SetBool("IsJumping", false);
+            playerAnim.SetBool("IsInAir", false);
+            playerAnim.SetBool("IsFalling", false);
+            playerAnim.SetBool("IsGrounded", false);
+            playerAnim.SetBool("IsInWater", _state == PlayerState.Underwater);
+        }
+
         switch (_state)
         {
             case PlayerState.OnDeck:
@@ -493,11 +505,12 @@ public class PlayerController : NetworkBehaviour
     {
         if (_moveAction == null) return;
         var moveInput = _moveAction.ReadValue<Vector2>();
+        bool jumpPressedThisFrame = _cc.isGrounded && _jumpAction != null && _jumpAction.WasPressedThisFrame();
 
         if (_cc.isGrounded && _verticalVelocity < 0f)
             _verticalVelocity = -2f;
 
-        if (_cc.isGrounded && _jumpAction != null && _jumpAction.WasPressedThisFrame())
+        if (jumpPressedThisFrame)
             _verticalVelocity = jumpForce;
 
         _verticalVelocity += gravity * Time.deltaTime;
@@ -510,6 +523,19 @@ public class PlayerController : NetworkBehaviour
         Vector3 move = transform.TransformDirection(new Vector3(moveInput.x, 0f, moveInput.y));
         _cc.Move((move * _currentSpeed + Vector3.up * _verticalVelocity) * Time.deltaTime);
         if (_state == PlayerState.WearingSuit) _cableSystem?.ClampToTetherLength();
+
+        if (playerAnim != null)
+        {
+            bool moving = moveInput.sqrMagnitude > 0.01f;
+            bool airborne = !_cc.isGrounded;
+
+            playerAnim.SetBool("IsRunning", moving);
+            playerAnim.SetBool("IsJumping", jumpPressedThisFrame);
+            playerAnim.SetBool("IsInAir", airborne && _verticalVelocity > 0.1f && !jumpPressedThisFrame);
+            playerAnim.SetBool("IsFalling", airborne && _verticalVelocity < -0.1f);
+            playerAnim.SetBool("IsGrounded", _cc.isGrounded);
+            playerAnim.SetBool("IsInWater", _state == PlayerState.Underwater);
+        }
     }
 
     private void HandleUnderwaterMovement()

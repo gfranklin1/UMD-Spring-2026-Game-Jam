@@ -6524,6 +6524,14 @@ PrefabInstance:
       value: Ocean
       objectReference: {fileID: 0}
     - target: {fileID: 7682545998686656802, guid: d159dea8a299c984db4497974adc9293, type: 3}
+      propertyPath: gridSize
+      value: 64
+      objectReference: {fileID: 0}
+    - target: {fileID: 7682545998686656802, guid: d159dea8a299c984db4497974adc9293, type: 3}
+      propertyPath: tileSize
+      value: 16
+      objectReference: {fileID: 0}
+    - target: {fileID: 7682545998686656802, guid: d159dea8a299c984db4497974adc9293, type: 3}
       propertyPath: foamThreshold
       value: 0.324
       objectReference: {fileID: 0}
