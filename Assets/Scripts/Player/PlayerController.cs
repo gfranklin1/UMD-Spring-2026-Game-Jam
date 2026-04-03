@@ -505,6 +505,7 @@ public class PlayerController : NetworkBehaviour
     {
         if (_moveAction == null) return;
         var moveInput = _moveAction.ReadValue<Vector2>();
+        bool wasGrounded = _cc.isGrounded;
         bool jumpPressedThisFrame = _cc.isGrounded && _jumpAction != null && _jumpAction.WasPressedThisFrame();
 
         if (_cc.isGrounded && _verticalVelocity < 0f)
@@ -527,13 +528,16 @@ public class PlayerController : NetworkBehaviour
         if (playerAnim != null)
         {
             bool moving = moveInput.sqrMagnitude > 0.01f;
-            bool airborne = !_cc.isGrounded;
+            bool grounded = _cc.isGrounded;
+            bool justLeftGround = wasGrounded && !grounded;
+            bool rising = !grounded && (_verticalVelocity > 0.1f || jumpPressedThisFrame);
+            bool falling = !grounded && !rising && (_verticalVelocity <= 0.1f || justLeftGround);
 
             playerAnim.SetBool("IsRunning", moving);
             playerAnim.SetBool("IsJumping", jumpPressedThisFrame);
-            playerAnim.SetBool("IsInAir", airborne && _verticalVelocity > 0.1f && !jumpPressedThisFrame);
-            playerAnim.SetBool("IsFalling", airborne && _verticalVelocity < -0.1f);
-            playerAnim.SetBool("IsGrounded", _cc.isGrounded);
+            playerAnim.SetBool("IsInAir", !grounded && !falling);
+            playerAnim.SetBool("IsFalling", falling);
+            playerAnim.SetBool("IsGrounded", grounded);
             playerAnim.SetBool("IsInWater", _state == PlayerState.Underwater);
         }
     }
