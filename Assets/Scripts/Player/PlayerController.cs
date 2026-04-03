@@ -315,6 +315,13 @@ public class PlayerController : NetworkBehaviour
             return;
         }
 
+        // Sync physics colliders with visual transforms so the platform raycast and
+        // CharacterController resolve against the ship's current position, not where
+        // it was at the last FixedUpdate.  Critical for non-host clients where
+        // NetworkTransform moves the ship before Update but autoSyncTransforms is off.
+        if (_platformTransform != null || _platformGraceTimer > 0f)
+            Physics.SyncTransforms();
+
         UpdatePlatformTracking();
         ApplyPlatformDelta();
 
@@ -437,6 +444,15 @@ public class PlayerController : NetworkBehaviour
         {
             _platformTransform = null;
             _platformGraceTimer = 0f;
+            return;
+        }
+
+        // At a station the player is pinned on the ship — don't let a transient raycast
+        // miss null out the platform and reset _lastPlatformYaw, which would zero yawDelta
+        // and break ship-rotation tracking for non-host clients.
+        if (_state == PlayerState.AtStation && _platformTransform != null)
+        {
+            _platformGraceTimer = 0.5f;
             return;
         }
 

@@ -28,7 +28,8 @@ public class ShipBuoyancy : MonoBehaviour
     private ShipMovement _shipMovement;
     private float _heightVelocity;
     private float _currentY;
-    private Quaternion _currentTiltRotation = Quaternion.identity;
+    private float _smoothedPitch;
+    private float _smoothedRoll;
     private bool _initialized;
 
     private void Start()
@@ -55,7 +56,13 @@ public class ShipBuoyancy : MonoBehaviour
         _currentY = Mathf.SmoothDamp(_currentY, targetY, ref _heightVelocity, heightSmoothTime);
 
         // Compute surface normal from height differences
-        float yaw = _shipMovement != null ? _shipMovement.CurrentYaw : transform.eulerAngles.y;
+        // On non-authority clients, ShipMovement.Update() is skipped so CurrentYaw is frozen
+        // at its spawn value. Use the transform's yaw directly — NetworkTransform has already
+        // written the interpolated server yaw to the transform before this Update() runs.
+        bool isAuthority = Unity.Netcode.NetworkManager.Singleton == null
+                        || !Unity.Netcode.NetworkManager.Singleton.IsListening
+                        || (_shipMovement != null && _shipMovement.IsServer);
+        float yaw = (isAuthority && _shipMovement != null) ? _shipMovement.CurrentYaw : transform.eulerAngles.y;
         Quaternion yawRot = Quaternion.Euler(0, yaw, 0);
         Vector3 shipForward = yawRot * Vector3.forward;
         Vector3 shipRight   = yawRot * Vector3.right;
@@ -78,13 +85,21 @@ public class ShipBuoyancy : MonoBehaviour
 
         // Clamp pitch/roll to maxTiltAngle
         targetRotation = ClampTilt(targetRotation, yaw);
-        _currentTiltRotation = Quaternion.Slerp(_currentTiltRotation, targetRotation, tiltSmoothSpeed * Time.deltaTime);
+
+        // Smooth only pitch/roll — yaw is applied exactly so platform tracking stays accurate
+        // on non-authority clients (where yaw comes from NetworkTransform interpolation).
+        Vector3 targetEuler = targetRotation.eulerAngles;
+        float targetPitch = targetEuler.x > 180f ? targetEuler.x - 360f : targetEuler.x;
+        float targetRoll  = targetEuler.z > 180f ? targetEuler.z - 360f : targetEuler.z;
+        float t = tiltSmoothSpeed * Time.deltaTime;
+        _smoothedPitch = Mathf.Lerp(_smoothedPitch, targetPitch, t);
+        _smoothedRoll  = Mathf.Lerp(_smoothedRoll,  targetRoll,  t);
 
         // Apply position (keep XZ from ShipMovement, override Y)
         Vector3 pos = transform.position;
         pos.y = _currentY;
         transform.position = pos;
-        transform.rotation = _currentTiltRotation;
+        transform.rotation = Quaternion.Euler(_smoothedPitch, yaw, _smoothedRoll);
     }
 
     private Quaternion ClampTilt(Quaternion rot, float yaw)
