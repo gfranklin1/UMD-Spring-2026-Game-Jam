@@ -23,11 +23,9 @@ public class SellStation : MonoBehaviour, IInteractable
 
     public void OnInteractStart(PlayerController player)
     {
-        player.LockToStation(this);
+        //player.LockToStation(this);
+        player.OpenSellUI();
     }
 
-    public void Release(PlayerController player)
-    {
-        
-    }
+    public void Release(PlayerController player)  { }
 }

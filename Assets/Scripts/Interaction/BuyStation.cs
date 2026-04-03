@@ -10,7 +10,7 @@ public class BuyStation : MonoBehaviour, IInteractable
 
     public float HoldDurationFor(PlayerController viewer)
     {
-        throw new System.NotImplementedException();
+        return 0f;
     }
 
     public void OnInteractCancel(PlayerController player) { }
@@ -19,13 +19,11 @@ public class BuyStation : MonoBehaviour, IInteractable
 
     public void OnInteractStart(PlayerController player)
     {
-        throw new System.NotImplementedException();
+        //player.LockToStation(this);
+        player.OpenBuyUI();
     }
 
-    public void Release(PlayerController player)
-    {
-        player.LockToStation(this);
-    }
+    public void Release(PlayerController player) { }
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()

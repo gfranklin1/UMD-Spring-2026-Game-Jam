@@ -31,7 +31,7 @@ public class SellUI : MonoBehaviour
 
     void OnClose()
     {
-
+        _panel?.SetActive(false);
     }
 
 }

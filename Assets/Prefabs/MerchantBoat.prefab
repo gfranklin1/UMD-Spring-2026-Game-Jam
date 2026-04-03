@@ -9,6 +9,10 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4234378825890761287}
+  - component: {fileID: 467346698184936277}
+  - component: {fileID: 4616650945689646596}
+  - component: {fileID: 8354817202046640929}
+  - component: {fileID: 1374255778954239419}
   m_Layer: 0
   m_Name: MerchantBoat
   m_TagString: Untagged
@@ -33,6 +37,87 @@ Transform:
   - {fileID: 3971789883518021531}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &467346698184936277
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1756576705279386870}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+  GlobalObjectIdHash: 400706555
+  InScenePlacedSourceGlobalObjectIdHash: 1533520367
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 0
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
+--- !u!114 &4616650945689646596
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1756576705279386870}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ba57cf70b3405a14a893e92cb3ac3e47, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MerchantManager
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!95 &8354817202046640929
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1756576705279386870}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 9d975b415d548224f8762a06ca13c59c, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &1374255778954239419
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1756576705279386870}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 777a8885bc0563b4ca859f93e3a46997, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShipBuoyancy
+  oceanWaves: {fileID: 0}
+  bowOffset: {x: 0, y: 1, z: 4}
+  sternOffset: {x: 0, y: 1, z: -4}
+  portOffset: {x: -2, y: 1, z: 0}
+  starboardOffset: {x: 2, y: 1, z: 0}
+  tiltScale: 0.3
+  maxTiltAngle: 5
+  heightSmoothTime: 0.35
+  tiltSmoothSpeed: 2
 --- !u!1 &2139823877908543982
 GameObject:
   m_ObjectHideFlags: 0
@@ -148,8 +233,38 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 9b6fc7288df987644ace085a09093fb0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 52643611486817828}
   m_SourcePrefab: {fileID: 100100000, guid: 9b6fc7288df987644ace085a09093fb0, type: 3}
+--- !u!1 &7457609863510728566 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 9b6fc7288df987644ace085a09093fb0, type: 3}
+  m_PrefabInstance: {fileID: 7764110620840731175}
+  m_PrefabAsset: {fileID: 0}
+--- !u!64 &52643611486817828
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7457609863510728566}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 1756115988526950567, guid: 9b6fc7288df987644ace085a09093fb0, type: 3}
 --- !u!4 &7797155940279633356 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 9b6fc7288df987644ace085a09093fb0, type: 3}
@@ -165,11 +280,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 4698550044236892027, guid: d56f38f6e42cf244eb9258f28d1fb4dc, type: 3}
       propertyPath: GlobalObjectIdHash
-      value: 3067399326
+      value: 3643584074
       objectReference: {fileID: 0}
     - target: {fileID: 4698550044236892027, guid: d56f38f6e42cf244eb9258f28d1fb4dc, type: 3}
       propertyPath: InScenePlacedSourceGlobalObjectIdHash
-      value: 4184095878
+      value: 1533520367
       objectReference: {fileID: 0}
     - target: {fileID: 5479694157131634698, guid: d56f38f6e42cf244eb9258f28d1fb4dc, type: 3}
       propertyPath: m_LocalScale.x

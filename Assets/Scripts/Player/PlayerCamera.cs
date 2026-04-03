@@ -41,16 +41,16 @@ public class PlayerCamera : MonoBehaviour
             return;
         }
 
-        bool chestOpen = _playerController != null && _playerController.CurrentOpenChest != null;
+        bool uiOpen = _playerController != null && _playerController.OpenUI;
 
         // Sync cursor state to chest UI state
-        if (chestOpen && _cursorLocked)
+        if (uiOpen && _cursorLocked)
             SetCursorLocked(false);
-        else if (!chestOpen && !_cursorLocked)
+        else if (!uiOpen && !_cursorLocked)
             SetCursorLocked(true);
 
         // Escape releases cursor while no chest is open
-        if (!chestOpen && _cursorLocked &&
+        if (!uiOpen && _cursorLocked &&
             Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
             SetCursorLocked(false);
 
