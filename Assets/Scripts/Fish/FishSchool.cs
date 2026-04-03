@@ -1,33 +1,61 @@
 using System.Collections.Generic;
 using UnityEngine;
+using FishAlive;
 
 /// <summary>
-/// Manages a group of fish: aggregates school center / average velocity,
-/// and triggers flee behaviour on all members when a player gets too close.
-/// Run this before FishAI via Project Settings > Script Execution Order (e.g. -50).
+/// Manages a group of fish: triggers flee behaviour when a player gets too close,
+/// then restores normal wandering after the flee duration.
+/// Works with FishMotion (DenysAlmaral FishAlive) — target swapping drives flee.
 /// </summary>
 public class FishSchool : MonoBehaviour
 {
     [Tooltip("Fish instances belonging to this school. Populated by FishSpawner at runtime.")]
-    public List<FishAI> members = new();
+    public List<FishMotion> members = new();
 
     [Header("Flee Trigger")]
-    [Tooltip("If any player enters this radius around the school centre, all members are told to flee.")]
+    [Tooltip("If any player enters this radius around the school centre, all members flee.")]
     public float schoolFleeRadius = 12f;
+    [Tooltip("Seconds fish flee before returning to their wander target.")]
+    public float fleeDuration = 5f;
 
     [Header("Performance")]
     [Tooltip("How often (seconds) to re-query the scene for PlayerController instances.")]
     public float playerCheckInterval = 0.5f;
 
-    public Vector3 SchoolCenter    { get; private set; }
-    public Vector3 AverageVelocity { get; private set; }
+    public Vector3 SchoolCenter => transform.position;
+
+    private GameObject _wanderTarget;
+    private GameObject _fleeTargetGO;
+    private float _fleeTimer;
 
     private PlayerController[] _players = System.Array.Empty<PlayerController>();
     private float _playerRefreshTimer;
 
+    // ─────────────────────────────────────────────────────────────────
+
+    private void Awake()
+    {
+        _fleeTargetGO = new GameObject("FleeTarget_" + name);
+        _fleeTargetGO.transform.SetParent(transform);
+    }
+
+    private void OnDestroy()
+    {
+        if (_fleeTargetGO) Destroy(_fleeTargetGO);
+    }
+
+    /// <summary>Called by FishSpawner to tell the school which GO each fish should wander around.</summary>
+    public void SetWanderTarget(GameObject go) => _wanderTarget = go;
+
     private void Update()
     {
-        RecalculateAggregates();
+        // Tick flee timer; restore when expired
+        if (_fleeTimer > 0f)
+        {
+            _fleeTimer -= Time.deltaTime;
+            if (_fleeTimer <= 0f)
+                RestoreTargets();
+        }
 
         // Throttled player search
         _playerRefreshTimer -= Time.deltaTime;
@@ -36,6 +64,9 @@ public class FishSchool : MonoBehaviour
             _players = FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
             _playerRefreshTimer = playerCheckInterval;
         }
+
+        // Only bother if not already fleeing
+        if (_fleeTimer > 0f) return;
 
         // Find closest player to school centre
         Vector3 closestPos = Vector3.zero;
@@ -50,37 +81,29 @@ public class FishSchool : MonoBehaviour
         }
 
         if (found && closestSq < schoolFleeRadius * schoolFleeRadius)
-        {
-            foreach (var m in members)
-                if (m != null) m.TriggerFlee(closestPos);
-        }
+            TriggerFlee(closestPos);
     }
 
-    private void RecalculateAggregates()
+    private void TriggerFlee(Vector3 playerPos)
     {
-        if (members.Count == 0)
-        {
-            SchoolCenter    = transform.position;
-            AverageVelocity = Vector3.zero;
-            return;
-        }
+        Vector3 away = SchoolCenter - playerPos;
+        if (away.sqrMagnitude < 0.001f) away = Random.insideUnitSphere;
+        away.Normalize();
 
-        Vector3 sumPos = Vector3.zero;
-        Vector3 sumVel = Vector3.zero;
-        int count = 0;
+        _fleeTargetGO.transform.position = SchoolCenter + away * 20f;
+        _fleeTimer = fleeDuration;
 
         foreach (var m in members)
         {
-            if (m == null) continue;
-            sumPos += m.transform.position;
-            sumVel += m.Velocity;
-            count++;
+            if (m != null) m.target = _fleeTargetGO;
         }
+    }
 
-        if (count > 0)
+    private void RestoreTargets()
+    {
+        foreach (var m in members)
         {
-            SchoolCenter    = sumPos / count;
-            AverageVelocity = sumVel / count;
+            if (m != null) m.target = _wanderTarget;
         }
     }
 }

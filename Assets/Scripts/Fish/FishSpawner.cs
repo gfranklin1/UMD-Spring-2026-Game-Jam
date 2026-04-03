@@ -1,17 +1,18 @@
 using System.Collections;
-using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
+using FishAlive;
 
 /// <summary>
 /// Spawns ambient fish schools in the underwater volume around the ship using
 /// SeabedManager.GetFloorY() for accurate per-point floor depths.
-/// No manual coordinates — the actual procedural seabed drives every bound.
+/// Uses DenysAlmaral FishAlive prefabs — assign marine_clownfish and/or
+/// freshWater_guppy in the fishPrefabs array in the inspector.
 /// </summary>
 public class FishSpawner : MonoBehaviour
 {
     [Header("Prefabs")]
-    [Tooltip("Fish prefabs to pick from (mix Models/Fish and Floreswa assets freely).")]
+    [Tooltip("FishAlive prefabs to pick from (marine_clownfish, freshWater_guppy).")]
     public GameObject[] fishPrefabs;
 
     [Header("School Config")]
@@ -36,7 +37,7 @@ public class FishSpawner : MonoBehaviour
     [Tooltip("Maximum height above the floor that fish roam (caps the water-column).")]
     public float maxSwimHeight    = 18f;
 
-    private readonly List<GameObject> _schools = new();
+    private readonly System.Collections.Generic.List<GameObject> _schools = new();
     private Transform _ship;
 
     // ─────────────────────────────────────────────────────────────────
@@ -56,9 +57,6 @@ public class FishSpawner : MonoBehaviour
 
     private IEnumerator WaitAndSpawn()
     {
-        // Poll for SeabedManager and wait until its terrain has been generated.
-        // Uses FindFirstObjectByType + reflection on _generated to avoid any
-        // static-singleton lookup issues between compiled assemblies.
         SeabedManager sm = null;
         FieldInfo genField = null;
         float timeout = 20f;
@@ -74,7 +72,7 @@ public class FishSpawner : MonoBehaviour
                         BindingFlags.NonPublic | BindingFlags.Instance);
 
                 if (genField != null && (bool)genField.GetValue(sm))
-                    break;  // seabed is ready
+                    break;
             }
 
             yield return new WaitForSeconds(0.5f);
@@ -119,7 +117,14 @@ public class FishSpawner : MonoBehaviour
         schoolGO.transform.position = new Vector3(cx, (swimMin + swimMax) * 0.5f, cz);
 
         var school = schoolGO.AddComponent<FishSchool>();
-        int count  = Random.Range(fishPerSchoolMin, fishPerSchoolMax + 1);
+
+        // Create a wander target at the school centre; fish orbit around it
+        var centerGO = new GameObject("SchoolCenter");
+        centerGO.transform.position = schoolGO.transform.position;
+        centerGO.transform.SetParent(schoolGO.transform);
+        school.SetWanderTarget(centerGO);
+
+        int count = Random.Range(fishPerSchoolMin, fishPerSchoolMax + 1);
 
         for (int f = 0; f < count; f++)
         {
@@ -134,19 +139,19 @@ public class FishSpawner : MonoBehaviour
             var fishGO = Instantiate(prefab, spawnPos,
                 Quaternion.Euler(0f, Random.Range(0f, 360f), 0f));
             fishGO.transform.SetParent(schoolGO.transform);
-
-            var mc = fishGO.GetComponent<MeshCollider>();
-            if (mc != null) mc.enabled = false;
-
             fishGO.transform.localScale = Vector3.one * Random.Range(0.8f, 1.2f);
 
-            var ai         = fishGO.AddComponent<FishAI>();
-            ai.school      = school;
-            ai.isBrave     = Random.value < 0.20f;
-            ai.wanderSpeed = Random.Range(2.0f, 3.0f);
-            ai.EnableBounds(boundsMin, boundsMax);
-
-            school.members.Add(ai);
+            var motion = fishGO.GetComponent<FishMotion>();
+            if (motion != null)
+            {
+                motion.target = centerGO;
+                motion.EnableHardLimits(boundsMin, boundsMax);
+                school.members.Add(motion);
+            }
+            else
+            {
+                Debug.LogWarning($"[FishSpawner] Prefab {prefab.name} has no FishMotion component.", this);
+            }
         }
 
         return schoolGO;
