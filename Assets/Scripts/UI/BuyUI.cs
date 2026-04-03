@@ -5,7 +5,7 @@ public class BuyUI : MonoBehaviour
     [SerializeField] private PlayerController _player;
     [SerializeField] private PlayerInventory _inventory;
     [SerializeField] private GameObject _panel;
-
+    [SerializeField] private GameObject _noMoney;
     void Start()
     {
         _panel.SetActive(false);
@@ -33,8 +33,16 @@ public class BuyUI : MonoBehaviour
         _panel?.SetActive(false);
     }
 
-    void Buy(GameObject item)
+    void Buy(IUpgrade upgrade)
     {
-        return;
+        if (GoldTracker.Instance.TotalGold < upgrade.Cost())
+        {
+            _noMoney.SetActive(true);
+            return;
+        }
+        
+        _noMoney.SetActive(false);
+        GoldTracker.Instance.AddGoldDirect(-upgrade.Cost());
+        upgrade.ApplyUpgrade();
     }
 }
