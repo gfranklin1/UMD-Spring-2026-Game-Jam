@@ -862,6 +862,7 @@ public class PlayerController : NetworkBehaviour
     {
         // Close chest UI on second E press
         if (_openChest != null) { CloseChest(); return; }
+        if(OpenUI) { CloseSellUI(); CloseBuyUI(); return; }
 
         // Loot pickup — quick tap E (works in any non-station state)
         if (_nearestLoot != null && _inventory != null && !_inventory.IsFull)
