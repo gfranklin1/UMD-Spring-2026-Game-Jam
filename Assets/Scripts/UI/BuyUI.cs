@@ -32,4 +32,9 @@ public class BuyUI : MonoBehaviour
     {
         _panel?.SetActive(false);
     }
+
+    void BuySuit()
+    {
+
+    }
 }
