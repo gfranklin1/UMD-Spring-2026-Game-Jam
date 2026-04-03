@@ -20,7 +20,7 @@ public class PlayerController : NetworkBehaviour
     [SerializeField] private float surfaceFloatDepth = 1.2f;
     [SerializeField] private float buoyancySpring = 6f;
     [SerializeField] private float speedChangeRate = 15f;  // units/s — acceleration rate between walk and sprint
-    [SerializeField] private Animator playerAnim; 
+    [SerializeField] private Animator playerAnim;
 
     [Header("Diving Boots")]
     [SerializeField] private float bootSinkSpeed    = 8f;   // max downward speed (no buoyancy)
@@ -39,7 +39,8 @@ public class PlayerController : NetworkBehaviour
     [Header("References")]
     [SerializeField] private OceanWaves oceanWaves;
     [SerializeField] private Transform cameraRoot;
-    [SerializeField] private Renderer bodyRenderer;
+    [SerializeField] private Transform bodyRoot;
+    private Renderer[] _bodyRenderers = System.Array.Empty<Renderer>();
     [SerializeField] private PlayerInput playerInput;
     [SerializeField] private LootRegistry _lootRegistry;
 
@@ -77,6 +78,18 @@ public class PlayerController : NetworkBehaviour
     private Vector3 _localPlatformPosition;     // player pos in ship-local space
     private float _lastPlatformYaw;             // ship yaw last frame (for yaw-delta only)
     private float _platformGraceTimer;
+    private ShipMovement _shipMovement;         // cached ref for remote-player position correction
+
+    // Synced so all clients reconstruct the player's position from the current ship transform
+    // instead of the NT-stale world position (fixes host seeing remote players lag behind ship).
+    private NetworkVariable<Vector3> _netPlatformOffset = new NetworkVariable<Vector3>(
+        Vector3.zero,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Owner);
+    private NetworkVariable<bool> _netOnShip = new NetworkVariable<bool>(
+        false,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Owner);
 
     public StorageChest CurrentOpenChest => _openChest;
     public event System.Action<StorageChest> OnChestOpened;
@@ -110,19 +123,22 @@ public class PlayerController : NetworkBehaviour
         _cc           = GetComponent<CharacterController>();
         _cableSystem  = GetComponent<DiveCableSystem>();
         _inventory    = GetComponent<PlayerInventory>();
+        if (bodyRoot != null)
+            _bodyRenderers = bodyRoot.GetComponentsInChildren<Renderer>(true);
     }
 
     private void Start()
     {
         if (oceanWaves == null)
             oceanWaves = FindFirstObjectByType<OceanWaves>();
+        _shipMovement = FindFirstObjectByType<ShipMovement>();
     }
 
     public override void OnNetworkSpawn()
     {
         if (IsOwner)
         {
-            if (bodyRenderer != null) bodyRenderer.enabled = false;
+            foreach (var r in _bodyRenderers) r.enabled = false;
 
             if (playerInput != null)
             {
@@ -167,6 +183,10 @@ public class PlayerController : NetworkBehaviour
             if (playerCam != null) playerCam.enabled = false;
         }
 
+        // Disable CharacterController so physics depenetration doesn't fight
+        // NetworkTransform when it repositions the remote player each tick.
+        if (_cc != null) _cc.enabled = false;
+
         // Track remote players' dead state to hide their bodies
         NetworkIsDead.OnValueChanged += OnNetworkIsDeadChanged;
         if (NetworkIsDead.Value) ApplyDeadVisuals();
@@ -189,8 +209,8 @@ public class PlayerController : NetworkBehaviour
         transform.position = position;
         _cc.enabled = true;
     }
-    private void ApplyDeadVisuals() { if (bodyRenderer) bodyRenderer.enabled = false; if (_cc) _cc.enabled = false; }
-    private void UndoDeadVisuals()  { if (!IsOwner && bodyRenderer) bodyRenderer.enabled = true; if (_cc) _cc.enabled = true; }
+    private void ApplyDeadVisuals() { foreach (var r in _bodyRenderers) r.enabled = false; if (_cc) _cc.enabled = false; }
+    private void UndoDeadVisuals()  { if (!IsOwner) foreach (var r in _bodyRenderers) r.enabled = true; if (_cc) _cc.enabled = true; }
 
     public override void OnNetworkDespawn()
     {
@@ -319,8 +339,9 @@ public class PlayerController : NetworkBehaviour
         // CharacterController resolve against the ship's current position, not where
         // it was at the last FixedUpdate.  Critical for non-host clients where
         // NetworkTransform moves the ship before Update but autoSyncTransforms is off.
-        if (_platformTransform != null || _platformGraceTimer > 0f)
-            Physics.SyncTransforms();
+        // Must run every frame (not just while already tracking) so the first-acquisition
+        // raycast also hits the ship when it has moved since the last FixedUpdate.
+        Physics.SyncTransforms();
 
         UpdatePlatformTracking();
         ApplyPlatformDelta();
@@ -410,6 +431,20 @@ public class PlayerController : NetworkBehaviour
         }
 
         SyncLocalPlatformOffset();
+    }
+
+    /// <summary>
+    /// For remote players: override their NT-synced world position with one derived from the
+    /// current (locally up-to-date) ship transform.  This eliminates the NT interpolation lag
+    /// that makes non-host players appear to trail behind the ship on the host's screen.
+    /// Runs after Update (and after NGO's network update writes NT positions).
+    /// </summary>
+    private void LateUpdate()
+    {
+        if (IsOwner) return;
+        bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+        if (!networked || !_netOnShip.Value || _shipMovement == null) return;
+        transform.position = _shipMovement.transform.TransformPoint(_netPlatformOffset.Value);
     }
 
     private void UpdateWaterState()
@@ -510,11 +545,28 @@ public class PlayerController : NetworkBehaviour
 
     /// <summary>
     /// Records the player's position in ship-local space AFTER all movement for this frame.
+    /// Also writes to NetworkVariables so all clients can reconstruct world position from the
+    /// current (authoritative) ship transform rather than the NT-stale world position.
     /// </summary>
     private void SyncLocalPlatformOffset()
     {
-        if (_platformTransform == null) return;
-        _localPlatformPosition = _platformTransform.InverseTransformPoint(transform.position);
+        bool onShip = _platformTransform != null;
+        if (onShip)
+            _localPlatformPosition = _platformTransform.InverseTransformPoint(transform.position);
+
+        if (!IsOwner) return;
+        bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+        if (!networked) return;
+
+        if (onShip)
+        {
+            _netOnShip.Value = true;
+            _netPlatformOffset.Value = _localPlatformPosition;
+        }
+        else if (_netOnShip.Value)
+        {
+            _netOnShip.Value = false;
+        }
     }
 
     private void HandleDeckMovement()

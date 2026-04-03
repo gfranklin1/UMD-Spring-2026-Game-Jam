@@ -142,7 +142,12 @@ public class UnderwaterEffect : MonoBehaviour
 
     private void BuildVolume()
     {
+        // Destroy any stale volume left from a previous edit-mode reload ([ExecuteAlways])
+        var existing = transform.Find("UnderwaterVolume");
+        if (existing != null) DestroyImmediate(existing.gameObject);
+
         var go = new GameObject("UnderwaterVolume");
+        go.hideFlags = HideFlags.DontSave; // never serialized into the prefab asset
         go.transform.SetParent(transform);
 
         _volume          = go.AddComponent<Volume>();

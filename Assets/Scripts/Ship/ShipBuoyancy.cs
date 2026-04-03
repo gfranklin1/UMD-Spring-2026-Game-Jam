@@ -95,10 +95,14 @@ public class ShipBuoyancy : MonoBehaviour
         _smoothedPitch = Mathf.Lerp(_smoothedPitch, targetPitch, t);
         _smoothedRoll  = Mathf.Lerp(_smoothedRoll,  targetRoll,  t);
 
-        // Apply position (keep XZ from ShipMovement, override Y)
-        Vector3 pos = transform.position;
-        pos.y = _currentY;
-        transform.position = pos;
+        // Apply position: authority writes Y (NT syncs it to clients); clients keep NT-delivered Y
+        if (isAuthority)
+        {
+            Vector3 pos = transform.position;
+            pos.y = _currentY;
+            transform.position = pos;
+        }
+        // Pitch/roll are cosmetic and computed locally on every client
         transform.rotation = Quaternion.Euler(_smoothedPitch, yaw, _smoothedRoll);
     }
 
