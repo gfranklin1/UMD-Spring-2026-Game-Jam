@@ -95,15 +95,18 @@ public class ShipBuoyancy : MonoBehaviour
         _smoothedPitch = Mathf.Lerp(_smoothedPitch, targetPitch, t);
         _smoothedRoll  = Mathf.Lerp(_smoothedRoll,  targetRoll,  t);
 
-        // Apply position: authority writes Y (NT syncs it to clients); clients keep NT-delivered Y
+        // Server computes full buoyancy and writes position Y + rotation.
+        // NT syncs all axes to clients (Sea of Thieves approach).
+        // Clients skip the write — their ship transform comes entirely from NT.
+        // OceanWaves uses SyncedTime so the visual ocean on clients matches the
+        // server's wave phase, keeping the NT-delivered ship on the water surface.
         if (isAuthority)
         {
             Vector3 pos = transform.position;
             pos.y = _currentY;
             transform.position = pos;
+            transform.rotation = Quaternion.Euler(_smoothedPitch, yaw, _smoothedRoll);
         }
-        // Pitch/roll are cosmetic and computed locally on every client
-        transform.rotation = Quaternion.Euler(_smoothedPitch, yaw, _smoothedRoll);
     }
 
     private Quaternion ClampTilt(Quaternion rot, float yaw)

@@ -191,7 +191,9 @@ public class PlayerController : NetworkBehaviour
         NetworkIsDead.OnValueChanged += OnNetworkIsDeadChanged;
         if (NetworkIsDead.Value) ApplyDeadVisuals();
 
-        enabled = false;
+        // Don't disable the component — LateUpdate must run for non-owners
+        // to override their NT position with the ship-relative offset.
+        // Update() already returns early for non-owners via the IsOwner check.
     }
 
     private void OnNetworkIsDeadChanged(bool _, bool isDead) { if (isDead) ApplyDeadVisuals(); else UndoDeadVisuals(); }
@@ -444,7 +446,13 @@ public class PlayerController : NetworkBehaviour
         if (IsOwner) return;
         bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
         if (!networked || !_netOnShip.Value || _shipMovement == null) return;
-        transform.position = _shipMovement.transform.TransformPoint(_netPlatformOffset.Value);
+
+        // Reconstruct world position using yaw-only rotation (matching how the offset
+        // was computed).  This makes the result immune to pitch/roll and Y oscillation
+        // differences between clients — the player rides the current ship height and yaw.
+        Transform ship = _shipMovement.transform;
+        Quaternion yaw = Quaternion.Euler(0f, ship.eulerAngles.y, 0f);
+        transform.position = ship.position + yaw * _netPlatformOffset.Value;
     }
 
     private void UpdateWaterState()
@@ -561,7 +569,13 @@ public class PlayerController : NetworkBehaviour
         if (onShip)
         {
             _netOnShip.Value = true;
-            _netPlatformOffset.Value = _localPlatformPosition;
+            // Compute the offset using yaw-only rotation so it is immune to the
+            // pitch/roll and Y oscillation that differ between clients.  The full-
+            // transform _localPlatformPosition is kept for local tracking only.
+            Vector3 delta = transform.position - _platformTransform.position;
+            Quaternion invYaw = Quaternion.Inverse(
+                Quaternion.Euler(0f, _platformTransform.eulerAngles.y, 0f));
+            _netPlatformOffset.Value = invYaw * delta;
         }
         else if (_netOnShip.Value)
         {

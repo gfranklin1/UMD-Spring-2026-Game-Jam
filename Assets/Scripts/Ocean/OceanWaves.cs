@@ -78,6 +78,22 @@ public class OceanWaves : MonoBehaviour
     private int       _vertCount;
     private float     _maxAmplitude;
 
+    /// <summary>
+    /// Network-synchronized time for wave computation.  All connected clients
+    /// agree on this value (via NGO's ServerTime clock-sync), so waves are at
+    /// the same phase everywhere.  Falls back to Time.time for offline / editor.
+    /// </summary>
+    private float SyncedTime
+    {
+        get
+        {
+            var nm = Unity.Netcode.NetworkManager.Singleton;
+            if (nm != null && nm.IsListening)
+                return nm.ServerTime.TimeAsFloat;
+            return Time.time;
+        }
+    }
+
     // ═════════════════════════════════════════════════════════════
     #region Unity Lifecycle
 
@@ -106,7 +122,7 @@ public class OceanWaves : MonoBehaviour
 
         if (_mesh == null || _restXZ == null) return;
 
-        float time   = Time.time;
+        float time   = SyncedTime;
         float maxAmp = _maxAmplitude * Mathf.Max(waveIntensity, 0.001f);
 
         for (int i = 0; i < _vertCount; i++)
@@ -271,7 +287,7 @@ public class OceanWaves : MonoBehaviour
     public float GetWaveHeight(Vector3 worldPosition)
     {
         Vector3 local = transform.InverseTransformPoint(worldPosition);
-        float   y     = GerstnerHeightAt(local.x, local.z, Time.time);
+        float   y     = GerstnerHeightAt(local.x, local.z, SyncedTime);
         return transform.TransformPoint(new Vector3(local.x, y, local.z)).y;
     }
 
