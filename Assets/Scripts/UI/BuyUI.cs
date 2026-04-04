@@ -1,5 +1,6 @@
 using Unity.AppUI.UI;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class BuyUI : MonoBehaviour
 {
@@ -7,6 +8,10 @@ public class BuyUI : MonoBehaviour
     [SerializeField] private PlayerInventory _inventory;
     [SerializeField] private GameObject _panel;
     [SerializeField] private GameObject _noMoney;
+    [SerializeField] private Button Suit;
+
+
+    public UnityEvent<IUpgrade> TriggerBuy;
     void Start()
     {
         _panel.SetActive(false);
