@@ -7,9 +7,12 @@ using UnityEngine;
 /// </summary>
 public class MerchantManager : NetworkBehaviour
 {
+    [SerializeField]
+    Animator animator;
     public void Start()
     {
         QuotaManager.Instance.OnCycleChanged += Summon;
+        animator = GetComponent<Animator>();
     }
 
     // ── Events ────────
@@ -18,17 +21,18 @@ public class MerchantManager : NetworkBehaviour
     // ── Summoning/Releasing Merchant Ship ────────
     public void Summon()
     {
-        Animator animator = GetComponent<Animator>();
         animator.ResetTrigger("SendOff");
         animator.SetTrigger("Summon");
     }
 
     public void SendOff()
     {
-        Animator animator = GetComponent<Animator>();
         animator.ResetTrigger("Summon");
         animator.SetTrigger("SendOff");
     }
 
-
+    public void SignalMerchantLeave()
+    {
+        OnMerchantShipLeave.Invoke();
+    }
 }
