@@ -282,6 +282,7 @@ public class SeabedManager : MonoBehaviour
         var   verts     = new Vector3[vertCount];
         var   tris      = new int[vertCount];
         var   uvs       = new Vector2[vertCount];
+        var   colors    = new Color[vertCount];
         float step      = chunkSize / chunkResolution;
         float worldOX   = coord.x * chunkSize;  // world-space chunk origin X
         float worldOZ   = coord.y * chunkSize;  // world-space chunk origin Z
@@ -295,23 +296,23 @@ public class SeabedManager : MonoBehaviour
             float lz0 = z * step,       lz1 = lz0 + step;
 
             // World positions (for noise sampling)
-            float y00 = SampleFloorY(worldOX + lx0, worldOZ + lz0);
-            float y10 = SampleFloorY(worldOX + lx1, worldOZ + lz0);
-            float y01 = SampleFloorY(worldOX + lx0, worldOZ + lz1);
-            float y11 = SampleFloorY(worldOX + lx1, worldOZ + lz1);
+            float wx0 = worldOX + lx0, wx1 = worldOX + lx1;
+            float wz0 = worldOZ + lz0, wz1 = worldOZ + lz1;
 
-            // Note: vertices are in LOCAL space (relative to chunk GO at worldO_)
-            // Y values are already in world space since the chunk GO has Y=0
+            float y00 = SampleFloorY(wx0, wz0);
+            float y10 = SampleFloorY(wx1, wz0);
+            float y01 = SampleFloorY(wx0, wz1);
+            float y11 = SampleFloorY(wx1, wz1);
 
             // Triangle A: BL, TL, TR
-            verts[vi] = new Vector3(lx0, y00, lz0); uvs[vi] = new Vector2(lx0 / chunkSize, lz0 / chunkSize); tris[vi] = vi++;
-            verts[vi] = new Vector3(lx0, y01, lz1); uvs[vi] = new Vector2(lx0 / chunkSize, lz1 / chunkSize); tris[vi] = vi++;
-            verts[vi] = new Vector3(lx1, y11, lz1); uvs[vi] = new Vector2(lx1 / chunkSize, lz1 / chunkSize); tris[vi] = vi++;
+            verts[vi] = new Vector3(lx0, y00, lz0); uvs[vi] = new Vector2(lx0 / chunkSize, lz0 / chunkSize); tris[vi] = vi; colors[vi] = DepthColor(wx0, wz0, y00); vi++;
+            verts[vi] = new Vector3(lx0, y01, lz1); uvs[vi] = new Vector2(lx0 / chunkSize, lz1 / chunkSize); tris[vi] = vi; colors[vi] = DepthColor(wx0, wz1, y01); vi++;
+            verts[vi] = new Vector3(lx1, y11, lz1); uvs[vi] = new Vector2(lx1 / chunkSize, lz1 / chunkSize); tris[vi] = vi; colors[vi] = DepthColor(wx1, wz1, y11); vi++;
 
             // Triangle B: BL, TR, BR
-            verts[vi] = new Vector3(lx0, y00, lz0); uvs[vi] = new Vector2(lx0 / chunkSize, lz0 / chunkSize); tris[vi] = vi++;
-            verts[vi] = new Vector3(lx1, y11, lz1); uvs[vi] = new Vector2(lx1 / chunkSize, lz1 / chunkSize); tris[vi] = vi++;
-            verts[vi] = new Vector3(lx1, y10, lz0); uvs[vi] = new Vector2(lx1 / chunkSize, lz0 / chunkSize); tris[vi] = vi++;
+            verts[vi] = new Vector3(lx0, y00, lz0); uvs[vi] = new Vector2(lx0 / chunkSize, lz0 / chunkSize); tris[vi] = vi; colors[vi] = DepthColor(wx0, wz0, y00); vi++;
+            verts[vi] = new Vector3(lx1, y11, lz1); uvs[vi] = new Vector2(lx1 / chunkSize, lz1 / chunkSize); tris[vi] = vi; colors[vi] = DepthColor(wx1, wz1, y11); vi++;
+            verts[vi] = new Vector3(lx1, y10, lz0); uvs[vi] = new Vector2(lx1 / chunkSize, lz0 / chunkSize); tris[vi] = vi; colors[vi] = DepthColor(wx1, wz0, y10); vi++;
         }
 
         var mesh = new Mesh
@@ -321,10 +322,45 @@ public class SeabedManager : MonoBehaviour
         };
         mesh.SetVertices(verts);
         mesh.SetUVs(0, uvs);
+        mesh.SetColors(colors);
         mesh.SetTriangles(tris, 0);
         mesh.RecalculateNormals();   // flat normals because mesh is non-indexed
         mesh.RecalculateBounds();
         return mesh;
+    }
+
+    // Depth-to-colour gradient: shallow warm sand → deep dark rock/mud.
+    // High-frequency noise breaks up the gradient so it reads as real sediment variation.
+    private Color DepthColor(float wx, float wz, float worldY)
+    {
+        float depth    = surfaceY - worldY;   // positive = deeper
+        float maxDepth = minFloorDepth + shallowRange + canyonMaxDepth;
+        float t        = Mathf.Clamp01(depth / maxDepth);
+
+        // Colour stops
+        var sand     = new Color(0.83f, 0.73f, 0.52f);   // warm light sand (shallow)
+        var sediment = new Color(0.60f, 0.50f, 0.34f);   // darker sandy sediment
+        var mud      = new Color(0.34f, 0.28f, 0.20f);   // dark silt / mud
+        var rock     = new Color(0.16f, 0.14f, 0.12f);   // near-black deep rock
+
+        Color baseColor;
+        if      (t < 0.25f) baseColor = Color.Lerp(sand,     sediment, t / 0.25f);
+        else if (t < 0.55f) baseColor = Color.Lerp(sediment, mud,      (t - 0.25f) / 0.30f);
+        else                baseColor = Color.Lerp(mud,       rock,     (t - 0.55f) / 0.45f);
+
+        // Medium-frequency noise — patchy sand texture (distinct from terrain noise)
+        float n1 = SimplexNoise.Noise(wx * 0.035f + 300f, wz * 0.035f + 300f);
+        // Fine-frequency noise — grain-level variation
+        float n2 = SimplexNoise.Noise(wx * 0.12f  + 600f, wz * 0.12f  + 600f);
+
+        float variation = (n1 - 0.5f) * 0.14f + (n2 - 0.5f) * 0.06f;
+
+        return new Color(
+            Mathf.Clamp01(baseColor.r + variation),
+            Mathf.Clamp01(baseColor.g + variation * 0.85f),
+            Mathf.Clamp01(baseColor.b + variation * 0.65f),
+            1f
+        );
     }
 
     // ════════════════════════════════════════════════════════════════

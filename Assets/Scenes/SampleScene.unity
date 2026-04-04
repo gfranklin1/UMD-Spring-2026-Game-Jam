@@ -719,8 +719,8 @@ MonoBehaviour:
   schoolCount: 14
   fishPerSchoolMin: 8
   fishPerSchoolMax: 16
+  schoolFormationRadius: 4
   localRadius: 80
-  schoolSwimRadius: 15
   floorClearance: 2
   surfaceClearance: 2
   maxSwimHeight: 20
@@ -1908,6 +1908,10 @@ PrefabInstance:
       propertyPath: shipTransform
       value: 
       objectReference: {fileID: 1705308074}
+    - target: {fileID: 2944660975668094283, guid: 486bb26fe5557174f88147a1b48a9857, type: 3}
+      propertyPath: seabedMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: ac69552711ebe61409db3b759e2f25fb, type: 2}
     - target: {fileID: 5566456601582995974, guid: 486bb26fe5557174f88147a1b48a9857, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
