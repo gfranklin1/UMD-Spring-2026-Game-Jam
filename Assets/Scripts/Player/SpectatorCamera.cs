@@ -29,6 +29,7 @@ public class SpectatorCamera : MonoBehaviour
         _originalLocalRotation = _cameraRoot != null ? _cameraRoot.localRotation : Quaternion.identity;
         _hud                   = GetComponent<SpectatorHUD>();
         enabled                = false;
+        sensitivity = SettingsManager.GetSensitivity();
     }
 
     public void Activate()

@@ -29,10 +29,13 @@ public class MainMenuController : MonoBehaviour
     [SerializeField] private Button     _backButton;
 
     [Header("Settings Panel")]
-    [SerializeField] private Button _settingsCloseButton;
+    [SerializeField] private Button                _settingsCloseButton;
+    [SerializeField] private SettingsMenuController _settingsMenuController;
 
     private void Awake()
     {
+        SettingsManager.ApplyAll();
+
         // onClick events are wired as persistent listeners in the scene.
         // No AddListener needed here — avoids double-firing.
 
@@ -78,6 +81,7 @@ public class MainMenuController : MonoBehaviour
 
     private void OnSettings()
     {
+        _settingsMenuController?.InitUI();
         if (_settingsPanel != null) _settingsPanel.SetActive(true);
     }
 

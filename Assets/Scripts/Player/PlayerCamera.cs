@@ -21,6 +21,7 @@ public class PlayerCamera : MonoBehaviour
         if (pi != null) _lookAction = pi.actions["Look"];
 
         SetCursorLocked(true);
+        sensitivity = SettingsManager.GetSensitivity();
     }
 
     private void SetCursorLocked(bool locked)
