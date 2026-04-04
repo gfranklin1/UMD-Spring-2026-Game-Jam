@@ -78,6 +78,7 @@ public class PlayerController : NetworkBehaviour
     private Vector3 _localPlatformPosition;     // player pos in ship-local space
     private float _lastPlatformYaw;             // ship yaw last frame (for yaw-delta only)
     private float _platformGraceTimer;
+    private float _ladderClimbT;       // metres from bottom anchor along the ladder axis
     private ShipMovement _shipMovement;         // cached ref for remote-player position correction
 
     // Synced so all clients reconstruct the player's position from the current ship transform
@@ -328,6 +329,12 @@ public class PlayerController : NetworkBehaviour
         // Dead — spectating, skip all game logic
         if (_state == PlayerState.Dead) return;
 
+        // Platform tracking must always run so the player stays on the ship even while
+        // the chest UI is open or other states block movement input.
+        Physics.SyncTransforms();
+        UpdatePlatformTracking();
+        ApplyPlatformDelta();
+
         // Chest UI open — freeze all movement/interaction; only check for close keys
         if (_openChest != null)
         {
@@ -336,17 +343,6 @@ public class PlayerController : NetworkBehaviour
                 CloseChest();
             return;
         }
-
-        // Sync physics colliders with visual transforms so the platform raycast and
-        // CharacterController resolve against the ship's current position, not where
-        // it was at the last FixedUpdate.  Critical for non-host clients where
-        // NetworkTransform moves the ship before Update but autoSyncTransforms is off.
-        // Must run every frame (not just while already tracking) so the first-acquisition
-        // raycast also hits the ship when it has moved since the last FixedUpdate.
-        Physics.SyncTransforms();
-
-        UpdatePlatformTracking();
-        ApplyPlatformDelta();
 
         ScanForInteractables();
         ScanForLoot();
@@ -493,6 +489,9 @@ public class PlayerController : NetworkBehaviour
         // At a station the player is pinned on the ship — don't let a transient raycast
         // miss null out the platform and reset _lastPlatformYaw, which would zero yawDelta
         // and break ship-rotation tracking for non-host clients.
+        // Ladder climbing is included: the raycast misses when the player is on the ship's
+        // side, so we must keep the grace timer alive here. SyncLocalPlatformOffset (line 430)
+        // updates _localPlatformPosition every frame regardless of this early return.
         if (_state == PlayerState.AtStation && _platformTransform != null)
         {
             _platformGraceTimer = 0.5f;
@@ -704,7 +703,7 @@ public class PlayerController : NetworkBehaviour
 
     private void ScanForInteractables()
     {
-        if (_state == PlayerState.AtStation || _state == PlayerState.Underwater)
+        if (_state == PlayerState.AtStation)
         {
             _nearestInteractable = null;
             return;
@@ -756,6 +755,12 @@ public class PlayerController : NetworkBehaviour
             return;
         }
 
+        if (_currentStation is LadderClimbing ladder)
+        {
+            HandleLadderClimbing(ladder);
+            return;
+        }
+
         var moveInput = _moveAction?.ReadValue<Vector2>() ?? Vector2.zero;
         if (moveInput.magnitude > 0.1f) { ReleaseFromStation(); return; }
 
@@ -775,6 +780,72 @@ public class PlayerController : NetworkBehaviour
                 else
                     ApplyPumpFlowLocal(flow);
             }
+        }
+    }
+
+    /// <summary>
+    /// Called by LadderClimbing.OnInteractStart. Snaps to the ladder face and locks.
+    /// Safe to call from the Underwater state.
+    /// </summary>
+    public void GrabLadder(LadderClimbing ladder)
+    {
+        // Initialise climb parameter from current player height along the ladder
+        _ladderClimbT = ladder.ProjectOntoLadder(transform.position);
+
+        // Snap to ladder face at that height
+        _cc.enabled = false;
+        transform.position = ladder.GetPositionAtT(_ladderClimbT);
+        _cc.enabled = true;
+
+        // Ensure that when we later release, we go to OnDeck (not back to Underwater).
+        _preDiveState = PlayerState.OnDeck;
+
+        LockToStation(ladder);   // sets _state = AtStation, zeroes _verticalVelocity
+    }
+
+    private void HandleLadderClimbing(LadderClimbing ladder)
+    {
+        var  moveInput   = _moveAction?.ReadValue<Vector2>() ?? Vector2.zero;
+        bool jumpPressed = _jumpAction != null && _jumpAction.WasPressedThisFrame();
+
+        // Jump or horizontal input = release off the ladder
+        if (jumpPressed || Mathf.Abs(moveInput.x) > 0.3f)
+        {
+            ReleaseFromStation();
+            _verticalVelocity = jumpPressed ? jumpForce * 0.5f : 0f;
+            return;
+        }
+
+        float ladderLen = ladder.LadderLength;
+
+        // Advance the climb parameter by input — clamped to [0, ladderLen]
+        _ladderClimbT = Mathf.Clamp(
+            _ladderClimbT + moveInput.y * ladder.ClimbSpeed * Time.deltaTime,
+            0f, ladderLen);
+
+        // Always recompute world position from anchor geometry.
+        // ApplyPlatformDelta has already run, but we override it here so that
+        // buoyancy / pitch / roll never push the player off the ladder face.
+        _cc.enabled = false;
+        transform.position = ladder.GetPositionAtT(_ladderClimbT);
+        _cc.enabled = true;
+
+        // Auto-exit at top when pressing W and within 5 cm of the top
+        if (moveInput.y > 0f && _ladderClimbT >= ladderLen - 0.05f)
+        {
+            _cc.enabled = false;
+            transform.position = ladder.TopExitPosition;
+            _cc.enabled = true;
+            ReleaseFromStation();
+            _verticalVelocity = 0f;
+            return;
+        }
+
+        // Release at bottom when pressing S and at the base
+        if (moveInput.y < 0f && _ladderClimbT <= 0.05f)
+        {
+            ReleaseFromStation();
+            _verticalVelocity = 0f;
         }
     }
 

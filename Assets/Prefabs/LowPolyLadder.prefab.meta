@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: f2b43fc428f28d6449176e0187c933c1
+timeCreated: 1514426397
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 107984
+  packageName: Low Poly Survival Game Props
+  packageVersion: 1.0
+  assetPath: Assets/Prefabs/LowPolyLadder.prefab
+  uploadId: 221044
