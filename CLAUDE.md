@@ -41,7 +41,7 @@ The `--host` command-line arg triggers host mode at startup (used for dedicated 
 |---|---|
 | `QuotaManager` | Server-authoritative game loop: day/time, quota cycles, game-over. Singleton. |
 | `GoldTracker` | Shared gold pool. Server-only writes via `NetworkVariable<int>`. Singleton. |
-| `GameManager` | App-level singleton (DontDestroyOnLoad). Handles disconnect → return to menu. |
+| `GameManager` | App-level singleton (DontDestroyOnLoad). `RestartGame()` for forced disconnect; `LeaveGame()` for user-initiated quit from pause menu. Client leaving doesn't end the host session; host leaving disconnects everyone. |
 | `DayNightCycle` | Client-side visuals only; reads `QuotaManager.TimeOfDay01` each frame. |
 
 Quota targets: `[100, 250, 500, 800]` gold, then `+400` per cycle. 3 real minutes = 1 in-game day.
@@ -52,7 +52,7 @@ Quota targets: `[100, 250, 500, 800]` gold, then `+400` per cycle. 3 real minute
 
 Key player subsystems:
 - **Oxygen**: breath-hold (30 s) or suit buffer (60 s)
-- **DiveCableSystem**: tether while underwater
+- **DiveCableSystem**: dual-cable tether (air hose from pump, comms rope from winch). Comms rope (25 m) is shorter than air hose (30 m) and is the effective movement constraint. Comms rope length is **dynamic** — the winch reels in (shortens) or pays out (extends) the rope at runtime. Min 3 m, max 25 m. Resets to full on suit equip.
 - **SpectatorCamera**: activated on death — orbits alive players; mouse to orbit, A/D or LMB/RMB to cycle targets
 - **SpectatorHUD**: finds `SpectatorCanvas` child by name in `Awake()`; only toggles that panel, never the root
 
@@ -69,7 +69,7 @@ void   OnInteractStart / OnInteractHold / OnInteractCancel / Release(PlayerContr
 
 `HoldDurationFor` is viewer-aware — e.g. `DivingSuitRack` returns `0f` for non-wearers viewing an occupied suit (suppresses the hold ring in the HUD).
 
-Implementations: `DivingSuitRack`, `AirPumpStation`, `StorageChest`, `InteractableStation`, `HelmStation`, `AnchorSystem`.
+Implementations: `DivingSuitRack`, `AirPumpStation`, `WinchStation`, `StorageChest`, `InteractableStation`, `HelmStation`, `AnchorSystem`, `LadderClimbing`.
 
 ### Ship Systems
 
@@ -80,11 +80,12 @@ Scripts live in `Assets/Scripts/Ship/`. The Ship prefab needs `NetworkObject` + 
 | `ShipMovement` | Server-authoritative locomotion. Wind-driven forward thrust (Perlin noise varies speed), A/D yaw steering via `SetSteeringInputServerRpc`. Turn rate scales with speed. |
 | `ShipBuoyancy` | Cosmetic wave-following on all clients. Samples `OceanWaves.GetWaveHeight()` at 4 hull points (bow/stern/port/starboard) → sets Y position + pitch/roll. Runs in `LateUpdate` after `ShipMovement` sets XZ/yaw. |
 | `HelmStation` | `IInteractable` for the ship's wheel. Locks player to station; A/D steers without releasing (unlike generic stations). Wind drives speed automatically while helm is occupied. |
+| `WinchStation` | `IInteractable` at ship railing. Topside player holds Space to reel in (pull diver up + shorten rope, 3 m/s) or Ctrl to pay out (extend rope, 2 m/s). Signed speed sent via `PlayerController` RPCs (same pattern as `AirPumpStation`). |
 | `AnchorSystem` | `IInteractable` with state machine: `Stowed → Dropping → Deployed → Raising → Stowed`. Dropping sends anchor to ocean floor (`SeabedManager.GetFloorY`), zeroes ship speed. Raising slowly reels anchor back. LineRenderer rope with catenary sag. |
 
 **Moving platform**: `PlayerController` tracks the ship via `UpdatePlatformTracking()` / `ApplyPlatformDelta()` — applies the ship's frame-to-frame position/rotation delta to the player so `CharacterController` riders stay planted on deck.
 
-**HandleAtStationState** has station-specific branches: `HelmStation` (steering input, no release on move), `AirPumpStation` (crank on Space).
+**HandleAtStationState** has station-specific branches: `HelmStation` (steering input, no release on move), `AirPumpStation` (crank on Space), `WinchStation` (Space = reel in, Ctrl = pay out).
 
 **OceanWaves** follows the ship transform each frame (`transform.position = ship XZ`) so the ocean mesh stays under the vessel.
 
@@ -93,6 +94,8 @@ Scripts live in `Assets/Scripts/Ship/`. The Ship prefab needs `NetworkObject` + 
 - `InteractionPromptHUD` reads `HoldDurationFor(player) > 0` to decide whether to show the radial fill ring.
 - `PlayerHUD.HideForDeath()` / `ShowForRespawn()` toggle the HUD canvas and disable the component.
 - `VersionTextSetter` sets the version `Text` to `Application.version` at runtime (no hardcoded string).
+- **PauseMenu**: Owner-only, on the Player prefab. Escape toggles open/closed. While paused: disables `PlayerInput` + `PlayerCamera`, unlocks cursor. Buttons: Resume, Settings (instantiates `SettingsPanel` prefab), Back to Main Menu (`GameManager.LeaveGame()`). `PlayerCamera` re-reads sensitivity from `SettingsManager` in `OnEnable()` so settings changes apply immediately on resume.
+- **SettingsPanel prefab** (`Assets/Prefabs/UI/SettingsPanel.prefab`): Reusable settings UI with `SettingsMenuController`. Used in both MainMenu and the pause menu (instantiated at runtime). Back button calls `gameObject.SetActive(false)`.
 
 ### Reset Flow
 

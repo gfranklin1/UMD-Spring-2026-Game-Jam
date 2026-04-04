@@ -66,4 +66,28 @@ public class GameManager : MonoBehaviour
         SceneManager.LoadScene("MainMenu");
         _returningToMenu = false;
     }
+
+    /// <summary>
+    /// User-initiated leave from the pause menu.
+    /// Client gracefully disconnects without ending the host session.
+    /// Host leaving shuts down the session (all clients get disconnected).
+    /// </summary>
+    public void LeaveGame()
+    {
+        if (_returningToMenu) return;
+        _returningToMenu = true;
+
+        if (NetworkManager.Singleton != null)
+        {
+            NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnected;
+
+            if (NetworkManager.Singleton.IsListening)
+                NetworkManager.Singleton.Shutdown();
+
+            Destroy(NetworkManager.Singleton.gameObject);
+        }
+
+        SceneManager.LoadScene("MainMenu");
+        _returningToMenu = false;
+    }
 }

@@ -105,6 +105,8 @@ public class PlayerController : NetworkBehaviour
     private float _currentSpeed;
     private float _pumpFlowRate;   // oxygen/s currently delivered by the pump (0 when not pumping)
     private float _lastSentPumpFlow;
+    private float _winchPullSpeed;   // m/s upward pull from winch operator (0 when idle)
+    private float _lastSentWinchPull;
 
     // Synced so the server can find the suited player when routing pump RPCs
     private NetworkVariable<bool> _networkWearingSuit = new NetworkVariable<bool>(false,
@@ -213,8 +215,9 @@ public class PlayerController : NetworkBehaviour
     {
         if (!IsOwner) return;
         _spawnPosition = position;
+        _verticalVelocity = 0f;          // prevent gravity from pulling player down on the first frame
         _cc.enabled = false;
-        transform.position = position;
+        transform.position = position + Vector3.up * 0.5f;  // slight offset to clear ship deck after buoyancy shifts
         _cc.enabled = true;
     }
     private void ApplyDeadVisuals() { foreach (var r in _bodyRenderers) r.enabled = false; if (_cc) _cc.enabled = false; }
@@ -259,6 +262,7 @@ public class PlayerController : NetworkBehaviour
         _hasBoots      = false;
         _bootKickTimer = 0f;
         SetPumpFlowRate(0f);
+        _winchPullSpeed = 0f;
         _suitRack = null;
         _networkWearingSuit.Value = false;
         _cableSystem?.ClearAnchor();
@@ -665,6 +669,18 @@ public class PlayerController : NetworkBehaviour
             _verticalVelocity = Mathf.Clamp(_verticalVelocity, -swimVerticalSpeed * 6f, swimVerticalSpeed * 2f);
         }
 
+        // Winch: positive = reel in (pull up + shorten rope), negative = pay out (extend rope)
+        if (_winchPullSpeed > 0f)
+        {
+            float dampen = Mathf.Clamp01((_currentWaveHeight - transform.position.y) / 2f);
+            _verticalVelocity = Mathf.Max(_verticalVelocity, _winchPullSpeed * dampen);
+            _cableSystem?.SetCommsRopeLength(_cableSystem.CurrentCommsLength - _winchPullSpeed * Time.deltaTime);
+        }
+        else if (_winchPullSpeed < 0f)
+        {
+            _cableSystem?.SetCommsRopeLength(_cableSystem.CurrentCommsLength + (-_winchPullSpeed) * Time.deltaTime);
+        }
+
         _cc.Move((horizontal + Vector3.up * _verticalVelocity) * Time.deltaTime);
         _cableSystem?.ClampToTetherLength();
     }
@@ -682,9 +698,22 @@ public class PlayerController : NetworkBehaviour
                 _verticalVelocity = bootHopForce;
         }
 
-        // Pure gravity — no buoyancy, no drag
-        _verticalVelocity += gravity * Time.deltaTime;
-        _verticalVelocity  = Mathf.Max(_verticalVelocity, -bootSinkSpeed);
+        // Winch: positive = reel in (pull up + shorten rope), negative = pay out (extend rope)
+        if (_winchPullSpeed > 0f)
+        {
+            // Winch overrides gravity: ramp toward pull speed
+            float dampen = Mathf.Clamp01((_currentWaveHeight - transform.position.y) / 2f);
+            _verticalVelocity = Mathf.Lerp(_verticalVelocity, _winchPullSpeed * dampen, Time.deltaTime * 6f);
+            _cableSystem?.SetCommsRopeLength(_cableSystem.CurrentCommsLength - _winchPullSpeed * Time.deltaTime);
+        }
+        else
+        {
+            if (_winchPullSpeed < 0f)
+                _cableSystem?.SetCommsRopeLength(_cableSystem.CurrentCommsLength + (-_winchPullSpeed) * Time.deltaTime);
+
+            _verticalVelocity += gravity * Time.deltaTime;
+            _verticalVelocity  = Mathf.Max(_verticalVelocity, -bootSinkSpeed);
+        }
 
         _cc.Move((move * bootWalkSpeed + Vector3.up * _verticalVelocity) * Time.deltaTime);
         _cableSystem?.ClampToTetherLength();
@@ -788,6 +817,30 @@ public class PlayerController : NetworkBehaviour
                     SendPumpFlowServerRpc(flow);
                 else
                     ApplyPumpFlowLocal(flow);
+            }
+        }
+
+        if (_currentStation is WinchStation winch)
+        {
+            // Space = reel in (pull up + shorten rope), Ctrl = pay out (extend rope)
+            bool cranking = _jumpAction != null && _jumpAction.IsPressed();
+            bool lowering = _crouchAction != null && _crouchAction.IsPressed();
+            winch.SetCranking(cranking);
+            winch.SetLowering(lowering);
+
+            // Signed speed: positive = reel in, negative = pay out
+            float pull  = winch.CurrentPullSpeed;
+            float lower = winch.CurrentLowerSpeed;
+            float netSpeed = pull > 0f ? pull : -lower;
+
+            if (Mathf.Abs(netSpeed - _lastSentWinchPull) > 0.05f)
+            {
+                _lastSentWinchPull = netSpeed;
+                bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+                if (networked)
+                    SendWinchPullServerRpc(netSpeed);
+                else
+                    ApplyWinchPullLocal(netSpeed);
             }
         }
     }
@@ -930,6 +983,14 @@ public class PlayerController : NetworkBehaviour
             if (networked) SendPumpFlowServerRpc(0f);
             else           ApplyPumpFlowLocal(0f);
         }
+        if (_currentStation is WinchStation winchStation)
+        {
+            winchStation.OnOperatorLeft(this);
+            _lastSentWinchPull = 0f;
+            bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+            if (networked) SendWinchPullServerRpc(0f);
+            else           ApplyWinchPullLocal(0f);
+        }
         _currentStation?.Release(this);
         _currentStation = null;
         _state = PlayerState.OnDeck;
@@ -956,6 +1017,7 @@ public class PlayerController : NetworkBehaviour
         _hasBoots      = false;
         _bootKickTimer = 0f;
         SetPumpFlowRate(0f);
+        _winchPullSpeed = 0f;
         _suitRack?.ReturnSuit(_hasBoots);
         _suitRack = null;
         _state = PlayerState.OnDeck;
@@ -1154,6 +1216,42 @@ public class PlayerController : NetworkBehaviour
         }
     }
 
+    // ── Winch RPCs ──────────────────────────────────────────────────────────
+    // Operator calls SendWinchPullServerRpc on their OWN PlayerController.
+    // Server finds the suited diver and forwards the pull speed via ClientRpc.
+
+    [ServerRpc]
+    private void SendWinchPullServerRpc(float pullSpeed)
+    {
+        foreach (var pc in FindObjectsByType<PlayerController>(FindObjectsInactive.Exclude))
+        {
+            if (pc._networkWearingSuit.Value)
+            {
+                pc.ReceiveWinchPullClientRpc(pullSpeed);
+                return;
+            }
+        }
+    }
+
+    [ClientRpc]
+    private void ReceiveWinchPullClientRpc(float pullSpeed)
+    {
+        if (IsOwner) _winchPullSpeed = pullSpeed;
+    }
+
+    /// <summary>Single-player fallback: find the suited player locally.</summary>
+    private void ApplyWinchPullLocal(float pullSpeed)
+    {
+        foreach (var pc in FindObjectsByType<PlayerController>(FindObjectsInactive.Exclude))
+        {
+            if (pc != this && pc.IsWearingSuit)
+            {
+                pc._winchPullSpeed = pullSpeed;
+                return;
+            }
+        }
+    }
+
     // ── Suit Equip/Unequip RPCs ───────────────────────────────────────────────
     // DivingSuitRack calls these on the PlayerController after the hold timer fires.
     // The server validates exclusivity before confirming to the owner.
@@ -1216,6 +1314,7 @@ public class PlayerController : NetworkBehaviour
         _hasBoots      = false;
         _bootKickTimer = 0f;
         SetPumpFlowRate(0f);
+        _winchPullSpeed = 0f;
         _suitRack = null;
         _state    = PlayerState.OnDeck;
         _oxygen   = maxBreathSeconds;
