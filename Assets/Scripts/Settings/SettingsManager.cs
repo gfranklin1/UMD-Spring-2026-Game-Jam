@@ -13,6 +13,7 @@ public static class SettingsManager
     public const string KEY_MASTER_VOLUME     = "MasterVolume";
     public const string KEY_FULLSCREEN        = "Fullscreen";
     public const string KEY_RESOLUTION_INDEX  = "ResolutionIndex";
+    public const string KEY_NIGHT_SKYBOX      = "NightSkybox";
 
     // ── Defaults ──────────────────────────────────────────────────────────────
 
@@ -20,13 +21,15 @@ public static class SettingsManager
     public const float DEFAULT_VOLUME           = 1f;
     public const bool  DEFAULT_FULLSCREEN       = true;
     public const int   DEFAULT_RESOLUTION_INDEX = -1;
+    public const int   DEFAULT_NIGHT_SKYBOX     = 0; // 0 = Cold Night
 
     // ── Getters ───────────────────────────────────────────────────────────────
 
-    public static float GetSensitivity()    => PlayerPrefs.GetFloat(KEY_MOUSE_SENSITIVITY, DEFAULT_SENSITIVITY);
-    public static float GetVolume()         => PlayerPrefs.GetFloat(KEY_MASTER_VOLUME, DEFAULT_VOLUME);
-    public static bool  GetFullscreen()     => PlayerPrefs.GetInt(KEY_FULLSCREEN, DEFAULT_FULLSCREEN ? 1 : 0) == 1;
-    public static int   GetResolutionIndex()=> PlayerPrefs.GetInt(KEY_RESOLUTION_INDEX, DEFAULT_RESOLUTION_INDEX);
+    public static float GetSensitivity()      => PlayerPrefs.GetFloat(KEY_MOUSE_SENSITIVITY, DEFAULT_SENSITIVITY);
+    public static float GetVolume()           => PlayerPrefs.GetFloat(KEY_MASTER_VOLUME, DEFAULT_VOLUME);
+    public static bool  GetFullscreen()       => PlayerPrefs.GetInt(KEY_FULLSCREEN, DEFAULT_FULLSCREEN ? 1 : 0) == 1;
+    public static int   GetResolutionIndex()  => PlayerPrefs.GetInt(KEY_RESOLUTION_INDEX, DEFAULT_RESOLUTION_INDEX);
+    public static int   GetNightSkyboxIndex() => PlayerPrefs.GetInt(KEY_NIGHT_SKYBOX, DEFAULT_NIGHT_SKYBOX);
 
     // ── Individual Apply ──────────────────────────────────────────────────────
 
@@ -64,11 +67,12 @@ public static class SettingsManager
 
     // ── Save Helpers ──────────────────────────────────────────────────────────
 
-    public static void SaveSensitivity(float value)    => PlayerPrefs.SetFloat(KEY_MOUSE_SENSITIVITY, Mathf.Clamp(value, 0.05f, 0.5f));
-    public static void SaveVolume(float value)         => PlayerPrefs.SetFloat(KEY_MASTER_VOLUME, Mathf.Clamp01(value));
-    public static void SaveFullscreen(bool value)      => PlayerPrefs.SetInt(KEY_FULLSCREEN, value ? 1 : 0);
-    public static void SaveResolutionIndex(int index)  => PlayerPrefs.SetInt(KEY_RESOLUTION_INDEX, index);
-    public static void SaveAll()                       => PlayerPrefs.Save();
+    public static void SaveSensitivity(float value)      => PlayerPrefs.SetFloat(KEY_MOUSE_SENSITIVITY, Mathf.Clamp(value, 0.05f, 0.5f));
+    public static void SaveVolume(float value)           => PlayerPrefs.SetFloat(KEY_MASTER_VOLUME, Mathf.Clamp01(value));
+    public static void SaveFullscreen(bool value)        => PlayerPrefs.SetInt(KEY_FULLSCREEN, value ? 1 : 0);
+    public static void SaveResolutionIndex(int index)    => PlayerPrefs.SetInt(KEY_RESOLUTION_INDEX, index);
+    public static void SaveNightSkyboxIndex(int value)   => PlayerPrefs.SetInt(KEY_NIGHT_SKYBOX, Mathf.Clamp(value, 0, 1));
+    public static void SaveAll()                         => PlayerPrefs.Save();
 
     // ── Resolution Utilities ──────────────────────────────────────────────────
 
