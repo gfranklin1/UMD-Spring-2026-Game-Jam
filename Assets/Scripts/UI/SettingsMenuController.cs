@@ -21,9 +21,6 @@ public class SettingsMenuController : MonoBehaviour
     [SerializeField] private Toggle   _fullscreenToggle;
     [SerializeField] private Dropdown _resolutionDropdown;
 
-    [Header("Night Sky")]
-    [SerializeField] private Dropdown _nightSkyDropdown;
-
     [Header("Buttons")]
     [SerializeField] private Button _applyButton;
     [SerializeField] private Button _resetButton;
@@ -85,15 +82,6 @@ public class SettingsMenuController : MonoBehaviour
         // ── Fullscreen Toggle ────────────────────────────────────────────────
         if (_fullscreenToggle != null)
             _fullscreenToggle.isOn = SettingsManager.GetFullscreen();
-
-        // ── Night Sky Dropdown ───────────────────────────────────────────────
-        if (_nightSkyDropdown != null)
-        {
-            _nightSkyDropdown.ClearOptions();
-            _nightSkyDropdown.AddOptions(new List<string> { "Cold Night", "Night MoonBurst" });
-            _nightSkyDropdown.value = SettingsManager.GetNightSkyboxIndex();
-            _nightSkyDropdown.RefreshShownValue();
-        }
     }
 
     // ── Live callbacks ────────────────────────────────────────────────────────
@@ -126,7 +114,6 @@ public class SettingsMenuController : MonoBehaviour
         if (_volumeSlider       != null) SettingsManager.SaveVolume(_volumeSlider.value);
         if (_fullscreenToggle   != null) SettingsManager.SaveFullscreen(_fullscreenToggle.isOn);
         if (_resolutionDropdown != null) SettingsManager.SaveResolutionIndex(_resolutionDropdown.value);
-        if (_nightSkyDropdown   != null) SettingsManager.SaveNightSkyboxIndex(_nightSkyDropdown.value);
 
         SettingsManager.SaveAll();
 
@@ -146,11 +133,6 @@ public class SettingsMenuController : MonoBehaviour
             int idx = SettingsManager.GetCurrentResolutionIndex();
             _resolutionDropdown.value = idx;
             _resolutionDropdown.RefreshShownValue();
-        }
-        if (_nightSkyDropdown != null)
-        {
-            _nightSkyDropdown.value = SettingsManager.DEFAULT_NIGHT_SKYBOX;
-            _nightSkyDropdown.RefreshShownValue();
         }
         // Labels update via the slider onValueChanged callbacks above
     }

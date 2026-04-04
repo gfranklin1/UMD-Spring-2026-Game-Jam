@@ -20,7 +20,6 @@ public class DayNightCycle : MonoBehaviour
     [Header("Skybox")]
     [SerializeField] private Material blendedSkybox;
     [SerializeField] private AnimationCurve skyboxBlendCurve;
-    [SerializeField] private Material[] nightSkyOptions; // 0=Cold Night, 1=Night MoonBurst
 
     private void Reset()
     {
@@ -60,10 +59,6 @@ public class DayNightCycle : MonoBehaviour
             moonIntensityCurve  == null || moonIntensityCurve.length  == 0 ||
             skyboxBlendCurve    == null || skyboxBlendCurve.length    == 0)
             Reset();
-
-        int skyIdx = SettingsManager.GetNightSkyboxIndex();
-        if (nightSkyOptions != null && skyIdx < nightSkyOptions.Length && nightSkyOptions[skyIdx] != null)
-            blendedSkybox = nightSkyOptions[skyIdx];
 
         if (blendedSkybox != null)
             RenderSettings.skybox = blendedSkybox;

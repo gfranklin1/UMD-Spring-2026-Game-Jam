@@ -483,9 +483,6 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  nightSkyOptions:
-  - {fileID: 2100000, guid: 9af23ba5fa5364ff598888460e0e2759, type: 2}
-  - {fileID: 2100000, guid: c494c335823f54b52b2e87e1b7a63a23, type: 2}
 --- !u!1001 &482357649
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -46,8 +46,7 @@
       "Bash(grep -l \"FishAI\\\\|5b4d0e97\" Assets/Floreswa/Prefabs/*.prefab)",
       "Bash(python3:*)",
       "Bash(node:*)",
-      "Bash(powershell:*)",
-      "Bash(grep -E \"\\\\.\\(cs|unity\\)$\")"
+      "Bash(powershell:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
