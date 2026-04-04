@@ -116,13 +116,20 @@ public class FishSpawner : MonoBehaviour
             float swimMax = Mathf.Min(-surfaceClearance, floorY + maxSwimHeight);
             if (swimMin >= swimMax) swimMax = swimMin + 3f;
 
-            // Pick one species per school and one tint colour for variety
-            var prefab    = fishPrefabs[s % fishPrefabs.Length];
-            var schoolTint = new Color(
-                Random.Range(0.75f, 1.0f),
-                Random.Range(0.75f, 1.0f),
-                Random.Range(0.75f, 1.0f));
+            // Cycle species so every school alternates type (0=clownfish, 1=guppy, …)
+            int prefabIndex = s % fishPrefabs.Length;
+            var prefab      = fishPrefabs[prefabIndex];
 
+            // Alternate warm/cool tints so the two species look obviously different:
+            //   even schools (clownfish) → warm orange-red
+            //   odd schools  (guppy)    → cool blue-cyan
+            Color schoolTint;
+            if (prefabIndex % 2 == 0)
+                schoolTint = new Color(Random.Range(0.9f, 1.0f), Random.Range(0.55f, 0.75f), Random.Range(0.2f, 0.4f));
+            else
+                schoolTint = new Color(Random.Range(0.2f, 0.4f), Random.Range(0.6f, 0.85f), Random.Range(0.9f, 1.0f));
+
+            Debug.Log($"[FishSpawner] School {s}: prefab={prefab?.name ?? "NULL"} tint={schoolTint}");
             _schools.Add(SpawnSchool(globalMin, globalMax, cx, swimMin, swimMax, cz, prefab, schoolTint));
         }
     }
@@ -163,15 +170,18 @@ public class FishSpawner : MonoBehaviour
             var fishGO = Instantiate(prefab, spawnPos,
                 Quaternion.Euler(0f, Random.Range(0f, 360f), 0f));
             fishGO.transform.SetParent(schoolGO.transform);
-            fishGO.transform.localScale = Vector3.one * Random.Range(0.8f, 1.2f);
 
-            // Apply per-school tint so different schools look distinct
+            // Guppy schools spawn slightly larger so they read clearly at a distance
+            float baseScale = (prefab == fishPrefabs[0]) ? 1.0f : 1.4f;
+            fishGO.transform.localScale = Vector3.one * baseScale * Random.Range(0.85f, 1.15f);
+
+            // Apply per-school tint — try both URP (_BaseColor) and legacy (_Color)
             foreach (var rend in fishGO.GetComponentsInChildren<Renderer>())
             {
-                // Use MaterialPropertyBlock to avoid creating new material instances
                 var mpb = new MaterialPropertyBlock();
                 rend.GetPropertyBlock(mpb);
                 mpb.SetColor("_BaseColor", tint);
+                mpb.SetColor("_Color", tint);
                 rend.SetPropertyBlock(mpb);
             }
 
