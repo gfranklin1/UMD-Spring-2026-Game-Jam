@@ -1,3 +1,4 @@
+using Unity.AppUI.UI;
 using UnityEngine;
 
 public class BuyUI : MonoBehaviour
@@ -33,7 +34,7 @@ public class BuyUI : MonoBehaviour
         _panel?.SetActive(false);
     }
 
-    void Buy(IUpgrade upgrade)
+    public void Buy(IUpgrade upgrade)
     {
         if (GoldTracker.Instance.TotalGold < upgrade.Cost())
         {

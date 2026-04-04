@@ -151,28 +151,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 2046947354}
-  wanderSpeed: 2.4424987
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 0
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!64 &13395182
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -374,28 +352,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 1821389380}
-  wanderSpeed: 2.3036215
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 0
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!64 &48651594
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -521,28 +477,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 2046947354}
-  wanderSpeed: 2.1900353
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 0
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!23 &234578694
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -632,131 +566,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.InputActionReference
   m_Asset: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_ActionId: 9caa3d8a-6b2f-4e8e-8bad-6ede561bd9be
---- !u!1 &268918470
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 268918471}
-  - component: {fileID: 268918473}
-  - component: {fileID: 268918472}
-  - component: {fileID: 268918474}
-  - component: {fileID: 268918475}
-  m_Layer: 0
-  m_Name: Buyer
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &268918471
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 268918470}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.38, y: 2.24, z: -1.49}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1292739296}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!23 &268918472
-MeshRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 268918470}
-  m_Enabled: 1
-  m_CastShadows: 1
-  m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
-  m_RayTraceProcedural: 0
-  m_RayTracingAccelStructBuildFlagsOverride: 0
-  m_RayTracingAccelStructBuildFlags: 1
-  m_SmallMeshCulling: 1
-  m_ForceMeshLod: -1
-  m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_MaskInteraction: 0
-  m_AdditionalVertexStreams: {fileID: 0}
---- !u!33 &268918473
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 268918470}
-  m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
---- !u!65 &268918474
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 268918470}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1.16, y: 2, z: 1.0000002}
-  m_Center: {x: 0.000000059604645, y: 0, z: -0.00000008940697}
---- !u!114 &268918475
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 268918470}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fa7c6c6b478685f49860f00f91ebb0ac, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BuyStation
 --- !u!1 &296986020
 GameObject:
   m_ObjectHideFlags: 0
@@ -789,28 +598,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 1106300492}
-  wanderSpeed: 2.8050454
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 0
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!64 &296986022
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -942,28 +729,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 1821389380}
-  wanderSpeed: 2.8391695
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 0
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!64 &380486365
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -1360,28 +1125,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 1295745506}
-  wanderSpeed: 2.4356213
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 1
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!64 &462301187
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -1507,28 +1250,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 1156848154}
-  wanderSpeed: 2.5548415
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 0
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!23 &471707286
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -1771,28 +1492,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 1821389380}
-  wanderSpeed: 2.195127
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 1
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!64 &517446905
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -1948,6 +1647,112 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ef1bc9e972cbce44ea4f6900eeb4afe1, type: 3}
+--- !u!1001 &568417572
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1292739296}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 56ff1cc84fedd0a45a3520b9e57f89cf, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 56ff1cc84fedd0a45a3520b9e57f89cf, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.58
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 56ff1cc84fedd0a45a3520b9e57f89cf, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -1.48
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 56ff1cc84fedd0a45a3520b9e57f89cf, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 56ff1cc84fedd0a45a3520b9e57f89cf, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 56ff1cc84fedd0a45a3520b9e57f89cf, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 56ff1cc84fedd0a45a3520b9e57f89cf, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 56ff1cc84fedd0a45a3520b9e57f89cf, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 56ff1cc84fedd0a45a3520b9e57f89cf, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 90
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 56ff1cc84fedd0a45a3520b9e57f89cf, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 56ff1cc84fedd0a45a3520b9e57f89cf, type: 3}
+      propertyPath: m_Name
+      value: crate-bottles
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 56ff1cc84fedd0a45a3520b9e57f89cf, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 568417576}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 56ff1cc84fedd0a45a3520b9e57f89cf, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 568417575}
+  m_SourcePrefab: {fileID: 100100000, guid: 56ff1cc84fedd0a45a3520b9e57f89cf, type: 3}
+--- !u!4 &568417573 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 56ff1cc84fedd0a45a3520b9e57f89cf, type: 3}
+  m_PrefabInstance: {fileID: 568417572}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &568417574 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 56ff1cc84fedd0a45a3520b9e57f89cf, type: 3}
+  m_PrefabInstance: {fileID: 568417572}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &568417575
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 568417574}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa7c6c6b478685f49860f00f91ebb0ac, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BuyStation
+--- !u!65 &568417576
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 568417574}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1.078, y: 1.0568609, z: 1.3089999}
+  m_Center: {x: 0, y: 0.52843046, z: 0}
 --- !u!1 &581952074
 GameObject:
   m_ObjectHideFlags: 0
@@ -2040,28 +1845,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 1180767175}
-  wanderSpeed: 2.169784
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 1
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!64 &583623621
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -2201,28 +1984,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 1180767175}
-  wanderSpeed: 2.1005507
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 0
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!23 &625153695
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -2330,28 +2091,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 2046947354}
-  wanderSpeed: 2.964721
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 0
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!64 &672342315
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -2477,28 +2216,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 1295745506}
-  wanderSpeed: 2.5185676
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 0
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!23 &715479090
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -2611,28 +2328,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 1295745506}
-  wanderSpeed: 2.216254
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 0
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!64 &777056756
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -2759,28 +2454,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 1106300492}
-  wanderSpeed: 2.2454848
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 0
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!64 &791289680
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -2907,28 +2580,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 1106300492}
-  wanderSpeed: 2.0644984
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 1
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!64 &812167665
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -3118,28 +2769,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 1821389380}
-  wanderSpeed: 2.0258658
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 0
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!64 &884981921
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -3265,28 +2894,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 1180767175}
-  wanderSpeed: 2.8822467
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 1
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!23 &961459245
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -3421,28 +3028,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 1295745506}
-  wanderSpeed: 2.881055
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 0
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!23 &1073044326
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -3555,6 +3140,7 @@ MonoBehaviour:
   - {fileID: 296986021}
   - {fileID: 812167664}
   schoolFleeRadius: 12
+  fleeDuration: 5
   playerCheckInterval: 0.5
 --- !u!4 &1106300493
 Transform:
@@ -3609,28 +3195,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 1156848154}
-  wanderSpeed: 2.7726972
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 0
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!64 &1150332529
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -3762,6 +3326,7 @@ MonoBehaviour:
   - {fileID: 1370223587}
   - {fileID: 1150332528}
   schoolFleeRadius: 12
+  fleeDuration: 5
   playerCheckInterval: 0.5
 --- !u!4 &1156848155
 Transform:
@@ -3819,6 +3384,7 @@ MonoBehaviour:
   - {fileID: 583623620}
   - {fileID: 961459244}
   schoolFleeRadius: 12
+  fleeDuration: 5
   playerCheckInterval: 0.5
 --- !u!4 &1180767176
 Transform:
@@ -3870,28 +3436,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 1821389380}
-  wanderSpeed: 2.497026
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 1
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!23 &1210290887
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -3998,28 +3542,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 2046947354}
-  wanderSpeed: 2.0012693
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 1
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!23 &1245576718
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -4127,28 +3649,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 2046947354}
-  wanderSpeed: 2.869858
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 0
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!64 &1260116933
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -4274,28 +3774,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 1821389380}
-  wanderSpeed: 2.2328367
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 0
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!23 &1260414743
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -4411,6 +3889,7 @@ MonoBehaviour:
   - {fileID: 715479089}
   - {fileID: 462301186}
   schoolFleeRadius: 12
+  fleeDuration: 5
   playerCheckInterval: 0.5
 --- !u!4 &1295745507
 Transform:
@@ -4463,28 +3942,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 1156848154}
-  wanderSpeed: 2.8524222
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 0
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!64 &1370223588
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -4611,28 +4068,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 1156848154}
-  wanderSpeed: 2.8892944
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 0
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!64 &1392858122
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -4759,28 +4194,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 1821389380}
-  wanderSpeed: 2.9133732
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 0
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!64 &1443322105
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -4907,28 +4320,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 1106300492}
-  wanderSpeed: 2.1786952
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 1
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!64 &1453991165
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -5069,28 +4460,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 1106300492}
-  wanderSpeed: 2.831105
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 0
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!64 &1522017423
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -5196,7 +4565,7 @@ GameObject:
   - component: {fileID: 1537583957}
   - component: {fileID: 1537583958}
   m_Layer: 0
-  m_Name: ShipMerchant
+  m_Name: ShipAndMerchant
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5270,28 +4639,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 1156848154}
-  wanderSpeed: 2.0000443
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 0
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!64 &1564448944
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -5502,28 +4849,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 1106300492}
-  wanderSpeed: 2.5148115
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 0
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!23 &1760499344
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -5753,11 +5078,12 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedGameObjects:
+    - {fileID: 8054573796919177217, guid: 1c8c4f0046edd034496801cd6d261ac8, type: 3}
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 4234378825890761287, guid: 1c8c4f0046edd034496801cd6d261ac8, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 268918471}
+      addedObject: {fileID: 568417573}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 1c8c4f0046edd034496801cd6d261ac8, type: 3}
 --- !u!1 &1802686160
@@ -5791,28 +5117,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 1180767175}
-  wanderSpeed: 2.3532038
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 0
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!23 &1802686162
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -5927,6 +5231,7 @@ MonoBehaviour:
   - {fileID: 1210290886}
   - {fileID: 1260414742}
   schoolFleeRadius: 12
+  fleeDuration: 5
   playerCheckInterval: 0.5
 --- !u!4 &1821389381
 Transform:
@@ -5996,28 +5301,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 1821389380}
-  wanderSpeed: 2.9994876
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 1
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!23 &1933097723
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -6125,28 +5408,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 2046947354}
-  wanderSpeed: 2.4528136
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 0
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!64 &2022692150
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -6272,28 +5533,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b4d0e97f12f77f4fbf6958eb24803d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishAI
-  school: {fileID: 1156848154}
-  wanderSpeed: 2.3675666
-  fleeSpeed: 6.5
-  returnSpeed: 3.5
-  accelerationRate: 4
-  rotationSpeed: 120
-  separationRadius: 1.5
-  separationWeight: 1.8
-  alignmentWeight: 0.8
-  cohesionWeight: 0.6
-  fleeRadius: 8
-  smallFleeRadius: 3.5
-  isBrave: 0
-  fleeDuration: 5
-  waypointReachedDist: 1.2
-  waypointTimeout: 8
-  verticalDriftAmp: 0.25
-  verticalDriftFreq: 0.6
-  maxPitchAngle: 25
-  maxRollAngle: 30
-  pitchSpeed: 90
-  rollSpeed: 60
 --- !u!23 &2027767622
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -6420,6 +5659,7 @@ MonoBehaviour:
   - {fileID: 13395181}
   - {fileID: 1245576717}
   schoolFleeRadius: 12
+  fleeDuration: 5
   playerCheckInterval: 0.5
 --- !u!4 &2046947355
 Transform:
