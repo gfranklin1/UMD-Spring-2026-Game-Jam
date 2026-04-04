@@ -3,26 +3,39 @@ using UnityEngine;
 using Soor.RopeGenerator;
 
 /// <summary>
-/// Manages the air hose attached to the diver using Soor.RopeGenerator's physics-based rope.
-/// Segments provide physics/collision; a LineRenderer draws a smooth cable visual.
-/// First and last segments are kinematic anchors at pump and player.
+/// Manages the air hose and comms rope attached to the diver using Soor.RopeGenerator's
+/// physics-based rope. Segments provide physics/collision; a LineRenderer draws a smooth
+/// cable visual for each rope.
+/// First and last segments are kinematic anchors at station and player.
 /// Middle segments drape under gravity with CharacterJoint physics.
 /// </summary>
 public class DiveCableSystem : NetworkBehaviour
 {
-    // ─── Inspector ────────────────────────────────────────────────────────────
-    [Header("Cable Constraint")]
+    // ─── Inspector: Air Hose ────────────────────────────────────────────────
+    [Header("Air Hose Constraint")]
     [SerializeField] private float maxCableLength = 30f;
 
-    [Header("Rope Generator")]
+    [Header("Air Hose Rope Generator")]
     [SerializeField] private GameObject segmentPrefab;
     [SerializeField] private float ropeLength       = 50f;  // must be > maxCableLength to allow droop slack
     [SerializeField] private float segmentsDistance  = 0.5f;
     [SerializeField] private float ropeThickness    = 0.1f;
 
-    [Header("Appearance")]
+    [Header("Air Hose Appearance")]
     [SerializeField] private Material airCableMaterial;
     [SerializeField] private float    cableRadius = 0.04f;
+
+    // ─── Inspector: Comms Rope ──────────────────────────────────────────────
+    [Header("Comms Rope Constraint")]
+    [SerializeField] private float commsMaxCableLength = 25f;
+
+    [Header("Comms Rope Generator")]
+    [SerializeField] private float commsRopeLength      = 45f;
+    [SerializeField] private float commsSegmentsDistance = 0.5f;
+
+    [Header("Comms Rope Appearance")]
+    [SerializeField] private Material commsRopeMaterial;
+    [SerializeField] private float    commsRopeRadius = 0.02f;
 
     [Header("Attachment")]
     [Tooltip("Assign the helmet / top-of-head transform on the player prefab. If null a child anchor is created automatically.")]
@@ -34,20 +47,30 @@ public class DiveCableSystem : NetworkBehaviour
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Owner);
 
-    // ─── Runtime state ────────────────────────────────────────────────────────
+    // ─── Runtime state: shared ──────────────────────────────────────────────
     private CharacterController _cc;
     private AirPumpStation      _pumpStation;
+    private WinchStation        _winchStation;
     private Vector3             _airAnchorPos;
+    private Vector3             _commsAnchorPos;
+    private Transform           _headAnchor;
+    private float               _currentCommsLength;  // dynamic rope length (reeled in/out by winch)
+    private bool                _offlineCablesActive;
+    private bool                _initialized;
 
+    // ─── Runtime state: air hose rope ───────────────────────────────────────
     private GameObject    _ropeParentGO;
     private Transform[]   _segmentTransforms;
     private Rigidbody     _firstSegmentRb;
     private Rigidbody     _lastSegmentRb;
     private LineRenderer  _lineRenderer;
-    private Transform     _headAnchor;
 
-    private bool _offlineCablesActive;
-    private bool _initialized;
+    // ─── Runtime state: comms rope ──────────────────────────────────────────
+    private GameObject    _commsRopeParentGO;
+    private Transform[]   _commsSegmentTransforms;
+    private Rigidbody     _commsFirstSegmentRb;
+    private Rigidbody     _commsLastSegmentRb;
+    private LineRenderer  _commsLineRenderer;
 
     // Shared across all instances so late-joining players can ignore existing rope colliders
     private static readonly System.Collections.Generic.List<Collider> s_allRopeColliders = new();
@@ -55,6 +78,20 @@ public class DiveCableSystem : NetworkBehaviour
     // ─── Helpers ──────────────────────────────────────────────────────────────
     private bool IsNetworked  => NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
     private bool CablesActive => IsNetworked ? _cablesActive.Value : _offlineCablesActive;
+
+    /// <summary>Effective max distance the player can go from the ship (min of both cables).</summary>
+    public float EffectiveMaxLength => Mathf.Min(maxCableLength, _currentCommsLength);
+
+    /// <summary>Current dynamic comms rope length (shortened by winch reel-in).</summary>
+    public float CurrentCommsLength => _currentCommsLength;
+
+    public const float MinCommsRopeLength = 3f;
+
+    /// <summary>Set the dynamic comms rope length (called by PlayerController when winch reels in/out).</summary>
+    public void SetCommsRopeLength(float length)
+    {
+        _currentCommsLength = Mathf.Clamp(length, MinCommsRopeLength, commsMaxCableLength);
+    }
 
     private Transform PlayerAttachTransform
     {
@@ -73,7 +110,7 @@ public class DiveCableSystem : NetworkBehaviour
         }
     }
 
-    // ─── Lifecycle ────────────────────────────────────────────────────────────
+    // ─── Lifecycle ──────────────────────────────────────────────────────────
 
     private void Awake()
     {
@@ -108,35 +145,58 @@ public class DiveCableSystem : NetworkBehaviour
         else        StopRope();
     }
 
-    // ─── Visual update ──────────────────────────────────────────────────────
+    // ─── Physics update ────────────────────────────────────────────────────
 
     private void FixedUpdate()
     {
         if (!CablesActive) return;
 
-        // Anchor first segment at pump, last segment at player
-        if (_firstSegmentRb != null)
+        // Air hose anchors
+        if (_firstSegmentRb != null && _pumpStation != null)
             _firstSegmentRb.MovePosition(_pumpStation.HoseTransform.position);
         if (_lastSegmentRb != null)
             _lastSegmentRb.MovePosition(PlayerAttachTransform.position);
+
+        // Comms rope anchors
+        if (_commsFirstSegmentRb != null && _winchStation != null)
+            _commsFirstSegmentRb.MovePosition(_winchStation.RopeTransform.position);
+        if (_commsLastSegmentRb != null)
+            _commsLastSegmentRb.MovePosition(PlayerAttachTransform.position);
     }
+
+    // ─── Visual update ─────────────────────────────────────────────────────
 
     private void LateUpdate()
     {
-        if (!CablesActive || _segmentTransforms == null || _lineRenderer == null) return;
+        if (!CablesActive) return;
 
-        // Update the LineRenderer to follow segment positions
-        int count = _segmentTransforms.Length + 2;
-        _lineRenderer.positionCount = count;
+        UpdateLineRenderer(_lineRenderer, _segmentTransforms,
+            _pumpStation != null ? _pumpStation.HoseTransform.position : _airAnchorPos,
+            PlayerAttachTransform.position,
+            airCableMaterial, maxCableLength, _airAnchorPos);
 
-        _lineRenderer.SetPosition(0, _pumpStation.HoseTransform.position);
-        for (int i = 0; i < _segmentTransforms.Length; i++)
-            _lineRenderer.SetPosition(i + 1, _segmentTransforms[i].position);
-        _lineRenderer.SetPosition(count - 1, PlayerAttachTransform.position);
+        UpdateLineRenderer(_commsLineRenderer, _commsSegmentTransforms,
+            _winchStation != null ? _winchStation.RopeTransform.position : _commsAnchorPos,
+            PlayerAttachTransform.position,
+            commsRopeMaterial, commsMaxCableLength, _commsAnchorPos);
+    }
+
+    private void UpdateLineRenderer(LineRenderer lr, Transform[] segments,
+        Vector3 startPos, Vector3 endPos, Material mat, float maxLen, Vector3 anchorPos)
+    {
+        if (lr == null || segments == null) return;
+
+        int count = segments.Length + 2;
+        lr.positionCount = count;
+
+        lr.SetPosition(0, startPos);
+        for (int i = 0; i < segments.Length; i++)
+            lr.SetPosition(i + 1, segments[i].position);
+        lr.SetPosition(count - 1, endPos);
 
         // Tension colour feedback
-        float tension   = TetherTension;
-        Color baseColor = airCableMaterial != null ? airCableMaterial.color : new Color(0.226f, 0.226f, 0.226f);
+        float tension = Mathf.Clamp01(Vector3.Distance(transform.position, anchorPos) / maxLen);
+        Color baseColor = mat != null ? mat.color : new Color(0.226f, 0.226f, 0.226f);
         Color targetColor;
 
         if (tension > 0.75f)
@@ -150,11 +210,11 @@ public class DiveCableSystem : NetworkBehaviour
             targetColor = baseColor;
         }
 
-        _lineRenderer.startColor = targetColor;
-        _lineRenderer.endColor   = targetColor;
+        lr.startColor = targetColor;
+        lr.endColor   = targetColor;
     }
 
-    // ─── Initialisation ───────────────────────────────────────────────────────
+    // ─── Initialisation ─────────────────────────────────────────────────────
 
     private void InitializeLocal()
     {
@@ -167,14 +227,20 @@ public class DiveCableSystem : NetworkBehaviour
             _pumpStation = FindFirstObjectByType<AirPumpStation>();
         if (_pumpStation != null)
             _airAnchorPos = _pumpStation.HosePosition;
+
+        if (_winchStation == null)
+            _winchStation = FindFirstObjectByType<WinchStation>();
+        if (_winchStation != null)
+            _commsAnchorPos = _winchStation.RopePosition;
     }
 
-    // ─── Rope creation / teardown ─────────────────────────────────────────────
+    // ─── Rope creation / teardown ───────────────────────────────────────────
 
     private void StartRope()
     {
         InitializeLocal();
 
+        // Air hose
         if (_pumpStation == null)
         {
             _pumpStation = FindFirstObjectByType<AirPumpStation>();
@@ -183,106 +249,147 @@ public class DiveCableSystem : NetworkBehaviour
         _airAnchorPos = _pumpStation.HosePosition;
 
         if (_ropeParentGO != null) Destroy(_ropeParentGO);
-        BuildRopeObject();
+        var airResult = BuildRopeObject("AirHoseRope",
+            _pumpStation.HoseTransform.position, PlayerAttachTransform.position,
+            ropeLength, segmentsDistance, ropeThickness,
+            airCableMaterial, cableRadius);
+        _ropeParentGO      = airResult.parent;
+        _segmentTransforms = airResult.segments;
+        _firstSegmentRb    = airResult.firstRb;
+        _lastSegmentRb     = airResult.lastRb;
+        _lineRenderer      = airResult.lr;
+
+        // Comms rope
+        if (_winchStation == null)
+            _winchStation = FindFirstObjectByType<WinchStation>();
+        if (_winchStation != null)
+        {
+            _commsAnchorPos = _winchStation.RopePosition;
+
+            if (_commsRopeParentGO != null) Destroy(_commsRopeParentGO);
+            var commsResult = BuildRopeObject("CommsRope",
+                _winchStation.RopeTransform.position, PlayerAttachTransform.position,
+                commsRopeLength, commsSegmentsDistance, ropeThickness,
+                commsRopeMaterial, commsRopeRadius);
+            _commsRopeParentGO      = commsResult.parent;
+            _commsSegmentTransforms = commsResult.segments;
+            _commsFirstSegmentRb    = commsResult.firstRb;
+            _commsLastSegmentRb     = commsResult.lastRb;
+            _commsLineRenderer      = commsResult.lr;
+
+            // Ignore collisions between the two ropes
+            if (_ropeParentGO != null && _commsRopeParentGO != null)
+            {
+                var airCols  = _ropeParentGO.GetComponentsInChildren<Collider>();
+                var commsCols = _commsRopeParentGO.GetComponentsInChildren<Collider>();
+                foreach (var a in airCols)
+                    foreach (var c in commsCols)
+                        Physics.IgnoreCollision(a, c);
+            }
+        }
     }
 
     private void StopRope()
     {
-        if (_ropeParentGO != null)
+        DestroyRope(ref _ropeParentGO, ref _segmentTransforms,
+            ref _firstSegmentRb, ref _lastSegmentRb, ref _lineRenderer);
+        DestroyRope(ref _commsRopeParentGO, ref _commsSegmentTransforms,
+            ref _commsFirstSegmentRb, ref _commsLastSegmentRb, ref _commsLineRenderer);
+    }
+
+    private void DestroyRope(ref GameObject parentGO, ref Transform[] segments,
+        ref Rigidbody firstRb, ref Rigidbody lastRb, ref LineRenderer lr)
+    {
+        if (parentGO != null)
         {
-            foreach (var col in _ropeParentGO.GetComponentsInChildren<Collider>())
+            foreach (var col in parentGO.GetComponentsInChildren<Collider>())
                 s_allRopeColliders.Remove(col);
 
-            Destroy(_ropeParentGO);
-            _ropeParentGO      = null;
-            _firstSegmentRb    = null;
-            _lastSegmentRb     = null;
-            _segmentTransforms = null;
-            _lineRenderer      = null;
+            Destroy(parentGO);
+            parentGO = null;
+            firstRb  = null;
+            lastRb   = null;
+            segments = null;
+            lr       = null;
         }
     }
 
-    private void BuildRopeObject()
+    private (GameObject parent, Transform[] segments, Rigidbody firstRb, Rigidbody lastRb, LineRenderer lr)
+        BuildRopeObject(string ropeName, Vector3 startPos, Vector3 endPos,
+            float length, float segDist, float thickness, Material mat, float radius)
     {
-        Vector3 startPos = _pumpStation.HoseTransform.position;
-        Vector3 endPos   = PlayerAttachTransform.position;
-
-        // Place the parent at the midpoint between pump and player so the vertical
-        // spawn column is centered — segments will settle faster under gravity.
         Vector3 midpoint = (startPos + endPos) * 0.5f;
-        _ropeParentGO = new GameObject("AirHoseRope");
-        _ropeParentGO.transform.position = midpoint;
+        var parentGO = new GameObject(ropeName);
+        parentGO.transform.position = midpoint;
 
-        // Do NOT freeze either end — we will make them kinematic manually
         var ropeData = new RopeData
         {
             segmentPrefab             = segmentPrefab,
-            ropeLength                = ropeLength,
+            ropeLength                = length,
             customizeSegmentsDistance  = true,
-            segmentsDistance           = segmentsDistance,
-            ropeThickness             = ropeThickness,
+            segmentsDistance           = segDist,
+            ropeThickness             = thickness,
             freezeFirstRopeSegment    = false,
             freezeLastRopeSegment     = false,
             setMaterialWhenSpawning   = false
         };
 
-        var rope = new Soor.RopeGenerator.Rope(ropeData, _ropeParentGO);
+        var rope = new Soor.RopeGenerator.Rope(ropeData, parentGO);
         rope.SpawnRope();
 
         // Collect segment transforms
-        int childCount = _ropeParentGO.transform.childCount;
-        _segmentTransforms = new Transform[childCount];
+        int childCount = parentGO.transform.childCount;
+        var segments = new Transform[childCount];
         for (int i = 0; i < childCount; i++)
-            _segmentTransforms[i] = _ropeParentGO.transform.Find((i + 1).ToString());
+            segments[i] = parentGO.transform.Find((i + 1).ToString());
 
         // Tune physics on every segment for stability
-        foreach (var seg in _segmentTransforms)
+        foreach (var seg in segments)
         {
-            // Hide capsule visuals — LineRenderer handles the look
             foreach (var r in seg.GetComponentsInChildren<Renderer>())
                 r.enabled = false;
 
-            // Tune physics: high drag for stability, CCD to prevent tunnelling through ship geometry
             var rb = seg.GetComponent<Rigidbody>();
             if (rb != null)
             {
-                rb.mass                  = 0.1f;
-                rb.linearDamping         = 5f;
-                rb.angularDamping        = 5f;
-                rb.interpolation         = RigidbodyInterpolation.Interpolate;
+                rb.mass                   = 0.1f;
+                rb.linearDamping          = 5f;
+                rb.angularDamping         = 5f;
+                rb.interpolation          = RigidbodyInterpolation.Interpolate;
                 rb.collisionDetectionMode = CollisionDetectionMode.Discrete;
             }
 
-            // Enable joint projection to prevent segment separation
             var joint = seg.GetComponent<CharacterJoint>();
             if (joint != null)
                 joint.enableProjection = true;
         }
 
-        // First segment: kinematic, anchored at pump
-        if (childCount > 0 && _segmentTransforms[0] != null)
+        // First segment: kinematic, anchored at start
+        Rigidbody firstRb = null;
+        if (childCount > 0 && segments[0] != null)
         {
-            _firstSegmentRb = _segmentTransforms[0].GetComponent<Rigidbody>();
-            if (_firstSegmentRb != null)
+            firstRb = segments[0].GetComponent<Rigidbody>();
+            if (firstRb != null)
             {
-                _firstSegmentRb.isKinematic = true;
-                _firstSegmentRb.position = startPos;
+                firstRb.isKinematic = true;
+                firstRb.position = startPos;
             }
         }
 
         // Last segment: kinematic, anchored at player
-        if (childCount > 1 && _segmentTransforms[childCount - 1] != null)
+        Rigidbody lastRb = null;
+        if (childCount > 1 && segments[childCount - 1] != null)
         {
-            _lastSegmentRb = _segmentTransforms[childCount - 1].GetComponent<Rigidbody>();
-            if (_lastSegmentRb != null)
+            lastRb = segments[childCount - 1].GetComponent<Rigidbody>();
+            if (lastRb != null)
             {
-                _lastSegmentRb.isKinematic = true;
-                _lastSegmentRb.position = endPos;
+                lastRb.isKinematic = true;
+                lastRb.position = endPos;
             }
         }
 
         // Register colliders in static list so late-joining players can ignore them
-        var ropeColliders = _ropeParentGO.GetComponentsInChildren<Collider>();
+        var ropeColliders = parentGO.GetComponentsInChildren<Collider>();
         s_allRopeColliders.AddRange(ropeColliders);
 
         // Ignore collisions with all currently spawned players
@@ -291,33 +398,54 @@ public class DiveCableSystem : NetworkBehaviour
                 Physics.IgnoreCollision(col, playerCC);
 
         // LineRenderer for smooth cable visual
-        _lineRenderer = _ropeParentGO.AddComponent<LineRenderer>();
-        _lineRenderer.useWorldSpace      = true;
-        _lineRenderer.positionCount      = childCount + 2;
-        _lineRenderer.startWidth         = cableRadius * 2f;
-        _lineRenderer.endWidth           = cableRadius * 2f;
-        _lineRenderer.numCornerVertices  = 4;
-        _lineRenderer.numCapVertices     = 4;
+        var lr = parentGO.AddComponent<LineRenderer>();
+        lr.useWorldSpace     = true;
+        lr.positionCount     = childCount + 2;
+        lr.startWidth        = radius * 2f;
+        lr.endWidth          = radius * 2f;
+        lr.numCornerVertices = 4;
+        lr.numCapVertices    = 4;
 
-        if (airCableMaterial != null)
-            _lineRenderer.material = airCableMaterial;
+        if (mat != null)
+            lr.material = mat;
         else
-            _lineRenderer.material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            lr.material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
 
-        Color baseColor = airCableMaterial != null ? airCableMaterial.color : new Color(0.226f, 0.226f, 0.226f);
-        _lineRenderer.startColor = baseColor;
-        _lineRenderer.endColor   = baseColor;
+        Color baseColor = mat != null ? mat.color : new Color(0.226f, 0.226f, 0.226f);
+        lr.startColor = baseColor;
+        lr.endColor   = baseColor;
+
+        return (parentGO, segments, firstRb, lastRb, lr);
     }
 
-    // ─── Public API ──────────────────────────────────────────────────────────
+    // ─── Public API ────────────────────────────────────────────────────────
 
-    public float TetherTension => (CablesActive && _pumpStation != null)
-        ? Mathf.Clamp01(Vector3.Distance(transform.position, _airAnchorPos) / maxCableLength)
-        : 0f;
+    /// <summary>
+    /// Tether tension (0–1) based on the tighter of the two cables.
+    /// Used by UI for visual feedback.
+    /// </summary>
+    public float TetherTension
+    {
+        get
+        {
+            if (!CablesActive) return 0f;
+
+            float airTension = _pumpStation != null
+                ? Mathf.Clamp01(Vector3.Distance(transform.position, _airAnchorPos) / maxCableLength)
+                : 0f;
+            float commsTension = _winchStation != null
+                ? Mathf.Clamp01(Vector3.Distance(transform.position, _commsAnchorPos) / _currentCommsLength)
+                : 0f;
+
+            return Mathf.Max(airTension, commsTension);
+        }
+    }
 
     public void ActivateCables()
     {
         if (IsNetworked && !IsOwner) return;
+
+        _currentCommsLength = commsMaxCableLength;  // full slack on equip
 
         if (IsNetworked) _cablesActive.Value = true;
         else             _offlineCablesActive = true;
@@ -340,19 +468,37 @@ public class DiveCableSystem : NetworkBehaviour
         if (IsNetworked && !IsOwner) return;
         if (!CablesActive || _cc == null) return;
 
+        // Use the shorter of the two cables as the effective max
+        float effectiveMax = EffectiveMaxLength;
+
+        // Clamp to air hose anchor (pump station)
         Vector3 toPlayer = transform.position - _airAnchorPos;
         float   dist     = toPlayer.magnitude;
-        if (dist > maxCableLength)
+        if (dist > effectiveMax)
         {
             _cc.enabled        = false;
-            transform.position = _airAnchorPos + toPlayer.normalized * maxCableLength;
+            transform.position = _airAnchorPos + toPlayer.normalized * effectiveMax;
             _cc.enabled        = true;
+        }
+
+        // Also clamp to comms rope anchor (winch station) if it exists
+        if (_winchStation != null)
+        {
+            toPlayer = transform.position - _commsAnchorPos;
+            dist     = toPlayer.magnitude;
+            if (dist > _currentCommsLength)
+            {
+                _cc.enabled        = false;
+                transform.position = _commsAnchorPos + toPlayer.normalized * _currentCommsLength;
+                _cc.enabled        = true;
+            }
         }
     }
 
     public override void OnDestroy()
     {
-        if (_ropeParentGO  != null) Destroy(_ropeParentGO);
-        if (_headAnchor    != null) Destroy(_headAnchor.gameObject);
+        if (_ropeParentGO      != null) Destroy(_ropeParentGO);
+        if (_commsRopeParentGO != null) Destroy(_commsRopeParentGO);
+        if (_headAnchor        != null) Destroy(_headAnchor.gameObject);
     }
 }

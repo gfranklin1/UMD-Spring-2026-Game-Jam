@@ -24,6 +24,11 @@ public class PlayerCamera : MonoBehaviour
         sensitivity = SettingsManager.GetSensitivity();
     }
 
+    private void OnEnable()
+    {
+        sensitivity = SettingsManager.GetSensitivity();
+    }
+
     private void SetCursorLocked(bool locked)
     {
         _cursorLocked    = locked;
@@ -48,11 +53,6 @@ public class PlayerCamera : MonoBehaviour
             SetCursorLocked(false);
         else if (!chestOpen && !_cursorLocked)
             SetCursorLocked(true);
-
-        // Escape releases cursor while no chest is open
-        if (!chestOpen && _cursorLocked &&
-            Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
-            SetCursorLocked(false);
 
         // No look input while cursor is free or chest is open
         if (_lookAction == null || !_cursorLocked) return;
