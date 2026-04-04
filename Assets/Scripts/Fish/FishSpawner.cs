@@ -8,6 +8,9 @@ using FishAlive;
 /// SeabedManager.GetFloorY() for accurate per-point floor depths.
 /// Uses DenysAlmaral FishAlive prefabs — assign marine_clownfish and/or
 /// freshWater_guppy in the fishPrefabs array in the inspector.
+/// Each school uses a single species and gets a random subtle color tint for variety.
+/// Fish receive personal target GOs parented to the school centre so they spread
+/// out as a formation while travelling together.
 /// </summary>
 public class FishSpawner : MonoBehaviour
 {
@@ -22,6 +25,8 @@ public class FishSpawner : MonoBehaviour
     public int fishPerSchoolMin = 4;
     [Tooltip("Max fish per school.")]
     public int fishPerSchoolMax = 8;
+    [Tooltip("Half-extent of the loose formation spread within each school (metres).")]
+    public float schoolFormationRadius = 4f;
 
     [Header("Spawn Area")]
     [Tooltip("XZ radius around the ship in which schools are randomly placed.")]
@@ -111,19 +116,28 @@ public class FishSpawner : MonoBehaviour
             float swimMax = Mathf.Min(-surfaceClearance, floorY + maxSwimHeight);
             if (swimMin >= swimMax) swimMax = swimMin + 3f;
 
-            _schools.Add(SpawnSchool(globalMin, globalMax, cx, swimMin, swimMax, cz));
+            // Pick one species per school and one tint colour for variety
+            var prefab    = fishPrefabs[s % fishPrefabs.Length];
+            var schoolTint = new Color(
+                Random.Range(0.75f, 1.0f),
+                Random.Range(0.75f, 1.0f),
+                Random.Range(0.75f, 1.0f));
+
+            _schools.Add(SpawnSchool(globalMin, globalMax, cx, swimMin, swimMax, cz, prefab, schoolTint));
         }
     }
 
     private GameObject SpawnSchool(Vector3 boundsMin, Vector3 boundsMax,
-                                    float cx, float swimMin, float swimMax, float cz)
+                                    float cx, float swimMin, float swimMax, float cz,
+                                    GameObject prefab, Color tint)
     {
         var schoolGO = new GameObject($"FishSchool_{_schools.Count}");
         schoolGO.transform.position = new Vector3(cx, (swimMin + swimMax) * 0.5f, cz);
 
         var school = schoolGO.AddComponent<FishSchool>();
 
-        // Wander target starts at the school centre; FishSchool relocates it periodically.
+        // Wander centre — FishSchool moves this periodically across the map.
+        // Personal targets are parented here so the whole formation follows it.
         var centerGO = new GameObject("SchoolCenter");
         centerGO.transform.position = schoolGO.transform.position;
         centerGO.transform.SetParent(schoolGO.transform);
@@ -134,25 +148,39 @@ public class FishSpawner : MonoBehaviour
 
         for (int f = 0; f < count; f++)
         {
-            var prefab = fishPrefabs[Random.Range(0, fishPrefabs.Length)];
             if (prefab == null) continue;
 
-            Vector3 spawnPos = new Vector3(
-                Random.Range(boundsMin.x, boundsMax.x),
-                Random.Range(boundsMin.y, boundsMax.y),
-                Random.Range(boundsMin.z, boundsMax.z));
+            // Personal target: parented to centerGO so it rides with the wander point.
+            // Offset spreads fish into a loose formation rather than a single point.
+            var personalTarget = new GameObject($"FishTarget_{f}");
+            personalTarget.transform.SetParent(centerGO.transform);
+            Vector3 formationOffset = Random.insideUnitSphere * schoolFormationRadius;
+            formationOffset.y *= 0.4f; // flatten vertically — schools are wide, not tall
+            personalTarget.transform.localPosition = formationOffset;
+
+            Vector3 spawnPos = personalTarget.transform.position;
 
             var fishGO = Instantiate(prefab, spawnPos,
                 Quaternion.Euler(0f, Random.Range(0f, 360f), 0f));
             fishGO.transform.SetParent(schoolGO.transform);
             fishGO.transform.localScale = Vector3.one * Random.Range(0.8f, 1.2f);
 
+            // Apply per-school tint so different schools look distinct
+            foreach (var rend in fishGO.GetComponentsInChildren<Renderer>())
+            {
+                // Use MaterialPropertyBlock to avoid creating new material instances
+                var mpb = new MaterialPropertyBlock();
+                rend.GetPropertyBlock(mpb);
+                mpb.SetColor("_BaseColor", tint);
+                rend.SetPropertyBlock(mpb);
+            }
+
             var motion = fishGO.GetComponent<FishMotion>();
             if (motion != null)
             {
-                motion.target = centerGO;
+                motion.target = personalTarget;
                 motion.EnableHardLimits(boundsMin, boundsMax);
-                school.members.Add(motion);
+                school.AddMember(motion, personalTarget);
             }
             else
             {

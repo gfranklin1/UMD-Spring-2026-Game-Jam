@@ -3,9 +3,9 @@ using UnityEngine;
 using FishAlive;
 
 /// <summary>
-/// Manages a group of fish: triggers flee behaviour when a player gets too close,
-/// then restores normal wandering after the flee duration.
-/// Works with FishMotion (DenysAlmaral FishAlive) — target swapping drives flee.
+/// Manages a school of fish: each member gets a personal target GO parented to the
+/// school's wander centre so they spread out naturally while moving as a group.
+/// Triggers flee when a player enters schoolFleeRadius, then restores formation.
 /// </summary>
 public class FishSchool : MonoBehaviour
 {
@@ -35,6 +35,9 @@ public class FishSchool : MonoBehaviour
     private float _fleeTimer;
     private float _wanderTimer;
 
+    // Per-fish personal targets (children of _wanderTarget, offset within school spread)
+    private readonly List<GameObject> _personalTargets = new();
+
     private PlayerController[] _players = System.Array.Empty<PlayerController>();
     private float _playerRefreshTimer;
 
@@ -51,7 +54,14 @@ public class FishSchool : MonoBehaviour
         if (_fleeTargetGO) Destroy(_fleeTargetGO);
     }
 
-    /// <summary>Called by FishSpawner to tell the school which GO each fish should wander around.</summary>
+    /// <summary>Called by FishSpawner once per fish to register it with its personal target GO.</summary>
+    public void AddMember(FishMotion motion, GameObject personalTarget)
+    {
+        members.Add(motion);
+        _personalTargets.Add(personalTarget);
+    }
+
+    /// <summary>Called by FishSpawner to tell the school which GO is the wander centre.</summary>
     public void SetWanderTarget(GameObject go) => _wanderTarget = go;
 
     /// <summary>Called by FishSpawner to set the map-wide bounds the school may roam within.</summary>
@@ -136,9 +146,10 @@ public class FishSchool : MonoBehaviour
 
     private void RestoreTargets()
     {
-        foreach (var m in members)
+        for (int i = 0; i < members.Count; i++)
         {
-            if (m != null) m.target = _wanderTarget;
+            if (members[i] != null && i < _personalTargets.Count)
+                members[i].target = _personalTargets[i];
         }
     }
 }
