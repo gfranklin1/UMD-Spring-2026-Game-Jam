@@ -18,6 +18,12 @@ public class FishSchool : MonoBehaviour
     [Tooltip("Seconds fish flee before returning to their wander target.")]
     public float fleeDuration = 5f;
 
+    [Header("Wander")]
+    [Tooltip("Seconds between wander target relocations (±2 s jitter).")]
+    public float wanderInterval = 10f;
+    public Vector3 wanderBoundsMin;
+    public Vector3 wanderBoundsMax;
+
     [Header("Performance")]
     [Tooltip("How often (seconds) to re-query the scene for PlayerController instances.")]
     public float playerCheckInterval = 0.5f;
@@ -27,6 +33,7 @@ public class FishSchool : MonoBehaviour
     private GameObject _wanderTarget;
     private GameObject _fleeTargetGO;
     private float _fleeTimer;
+    private float _wanderTimer;
 
     private PlayerController[] _players = System.Array.Empty<PlayerController>();
     private float _playerRefreshTimer;
@@ -47,6 +54,14 @@ public class FishSchool : MonoBehaviour
     /// <summary>Called by FishSpawner to tell the school which GO each fish should wander around.</summary>
     public void SetWanderTarget(GameObject go) => _wanderTarget = go;
 
+    /// <summary>Called by FishSpawner to set the map-wide bounds the school may roam within.</summary>
+    public void SetWanderBounds(Vector3 min, Vector3 max)
+    {
+        wanderBoundsMin = min;
+        wanderBoundsMax = max;
+        _wanderTimer = Random.Range(0f, wanderInterval); // stagger first relocation
+    }
+
     private void Update()
     {
         // Tick flee timer; restore when expired
@@ -55,6 +70,17 @@ public class FishSchool : MonoBehaviour
             _fleeTimer -= Time.deltaTime;
             if (_fleeTimer <= 0f)
                 RestoreTargets();
+        }
+
+        // Periodically move wander target to a new map position
+        if (_fleeTimer <= 0f && wanderBoundsMin != wanderBoundsMax)
+        {
+            _wanderTimer -= Time.deltaTime;
+            if (_wanderTimer <= 0f)
+            {
+                PickNewWanderPoint();
+                _wanderTimer = wanderInterval + Random.Range(-2f, 2f);
+            }
         }
 
         // Throttled player search
@@ -82,6 +108,15 @@ public class FishSchool : MonoBehaviour
 
         if (found && closestSq < schoolFleeRadius * schoolFleeRadius)
             TriggerFlee(closestPos);
+    }
+
+    private void PickNewWanderPoint()
+    {
+        if (_wanderTarget == null) return;
+        _wanderTarget.transform.position = new Vector3(
+            Random.Range(wanderBoundsMin.x, wanderBoundsMax.x),
+            Random.Range(wanderBoundsMin.y, wanderBoundsMax.y),
+            Random.Range(wanderBoundsMin.z, wanderBoundsMax.z));
     }
 
     private void TriggerFlee(Vector3 playerPos)

@@ -26,8 +26,6 @@ public class FishSpawner : MonoBehaviour
     [Header("Spawn Area")]
     [Tooltip("XZ radius around the ship in which schools are randomly placed.")]
     public float localRadius = 80f;
-    [Tooltip("XZ half-extent of each school's individual swim box.")]
-    public float schoolSwimRadius = 15f;
 
     [Header("Depth")]
     [Tooltip("How many metres above the seabed floor fish swim (lower bound).")]
@@ -92,6 +90,16 @@ public class FishSpawner : MonoBehaviour
     {
         Vector3 shipPos = _ship != null ? _ship.position : Vector3.zero;
 
+        // Compute global swim bounds spanning the full spawn area so every fish
+        // can roam across the whole map rather than a tight per-school box.
+        float globalFloorY  = sm.GetFloorY(shipPos.x, shipPos.z);
+        float globalSwimMin = globalFloorY + floorClearance;
+        float globalSwimMax = Mathf.Min(-surfaceClearance, globalFloorY + maxSwimHeight);
+        if (globalSwimMin >= globalSwimMax) globalSwimMax = globalSwimMin + 3f;
+
+        Vector3 globalMin = new Vector3(shipPos.x - localRadius, globalSwimMin, shipPos.z - localRadius);
+        Vector3 globalMax = new Vector3(shipPos.x + localRadius, globalSwimMax, shipPos.z + localRadius);
+
         for (int s = 0; s < schoolCount; s++)
         {
             Vector2 offset = Random.insideUnitCircle * localRadius;
@@ -103,10 +111,7 @@ public class FishSpawner : MonoBehaviour
             float swimMax = Mathf.Min(-surfaceClearance, floorY + maxSwimHeight);
             if (swimMin >= swimMax) swimMax = swimMin + 3f;
 
-            Vector3 boundsMin = new Vector3(cx - schoolSwimRadius, swimMin, cz - schoolSwimRadius);
-            Vector3 boundsMax = new Vector3(cx + schoolSwimRadius, swimMax, cz + schoolSwimRadius);
-
-            _schools.Add(SpawnSchool(boundsMin, boundsMax, cx, swimMin, swimMax, cz));
+            _schools.Add(SpawnSchool(globalMin, globalMax, cx, swimMin, swimMax, cz));
         }
     }
 
@@ -118,11 +123,12 @@ public class FishSpawner : MonoBehaviour
 
         var school = schoolGO.AddComponent<FishSchool>();
 
-        // Create a wander target at the school centre; fish orbit around it
+        // Wander target starts at the school centre; FishSchool relocates it periodically.
         var centerGO = new GameObject("SchoolCenter");
         centerGO.transform.position = schoolGO.transform.position;
         centerGO.transform.SetParent(schoolGO.transform);
         school.SetWanderTarget(centerGO);
+        school.SetWanderBounds(boundsMin, boundsMax);
 
         int count = Random.Range(fishPerSchoolMin, fishPerSchoolMax + 1);
 
