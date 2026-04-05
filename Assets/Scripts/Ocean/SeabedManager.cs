@@ -117,21 +117,6 @@ public class SeabedManager : MonoBehaviour
     private Vector2Int _lastShipChunk = new Vector2Int(int.MinValue, int.MinValue);
     private bool _generated; // true once chunks have been generated for the first time
 
-    /// <summary>True once the seabed seed is resolved and the first chunk pass is complete.</summary>
-    public bool IsReady { get; private set; }
-
-    /// <summary>World metres per chunk side.</summary>
-    public float ChunkSize => chunkSize;
-    /// <summary>The resolved terrain seed — use for deterministic per-chunk RNG.</summary>
-    public int Seed => seed;
-
-    /// <summary>Fired each time a new terrain chunk is created.</summary>
-    public event System.Action<Vector2Int, GameObject> OnChunkCreated;
-    /// <summary>Fired just before a terrain chunk is destroyed.</summary>
-    public event System.Action<Vector2Int> OnChunkUnloaded;
-    /// <summary>Fired when the entire seabed is torn down and regenerated (seed change).</summary>
-    public event System.Action OnSeabedReset;
-
     // ════════════════════════════════════════════════════════════════
     // Lifecycle
     // ════════════════════════════════════════════════════════════════
@@ -168,11 +153,6 @@ public class SeabedManager : MonoBehaviour
     private void OnSeedChanged(int oldSeed, int newSeed)
     {
         if (newSeed == 0 || newSeed == oldSeed) return;
-
-        IsReady = false;
-
-        // Notify subscribers that the seabed is being fully reset
-        OnSeabedReset?.Invoke();
 
         // Destroy all existing chunks and sites, then re-generate with the new seed
         foreach (var chunk in _loadedChunks.Values)
@@ -232,7 +212,6 @@ public class SeabedManager : MonoBehaviour
         SimplexNoise.SetSeed(seed);
         _generated = true;
         UpdateChunks();
-        IsReady = true;
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -255,7 +234,6 @@ public class SeabedManager : MonoBehaviour
         {
             if (!desired.Contains(key))
             {
-                OnChunkUnloaded?.Invoke(key);
                 Destroy(_loadedChunks[key]);
                 _loadedChunks.Remove(key);
             }
@@ -263,14 +241,8 @@ public class SeabedManager : MonoBehaviour
 
         // Load new chunks
         foreach (var coord in desired)
-        {
             if (!_loadedChunks.ContainsKey(coord))
-            {
-                var chunk = GenerateChunk(coord);
-                _loadedChunks[coord] = chunk;
-                OnChunkCreated?.Invoke(coord, chunk);
-            }
-        }
+                _loadedChunks[coord] = GenerateChunk(coord);
 
         UpdateDiveSites();
     }
