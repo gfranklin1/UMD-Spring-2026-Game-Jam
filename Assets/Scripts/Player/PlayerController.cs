@@ -69,7 +69,7 @@ public class PlayerController : NetworkBehaviour
     private LootPickup _nearestLoot;
     private StorageChest _openChest;
     private bool  _hasDied = false;
-    private Vector3 _spawnPosition;
+    private int _spawnPointIndex = -1;
     private bool _quotaResetSubscribed = false;
     private const float InteractRange = 2.5f;
 
@@ -162,7 +162,6 @@ public class PlayerController : NetworkBehaviour
             _health = maxHealth;
             _oxygen = maxBreathSeconds;
             _currentSpeed = walkSpeed;
-            _spawnPosition = transform.position;
             enabled = true;
 
             string localName = NetworkLauncher.PlayerName;
@@ -202,17 +201,27 @@ public class PlayerController : NetworkBehaviour
     private void OnNetworkIsDeadChanged(bool _, bool isDead) { if (isDead) ApplyDeadVisuals(); else UndoDeadVisuals(); }
 
     /// <summary>
-    /// Server → owning client: teleport to an assigned deck spawn point and
-    /// update _spawnPosition so quota-reset respawns land here too.
+    /// Server → owning client: teleport to an assigned deck spawn point.
+    /// Stores the index so respawns always use the spawn point's current world position
+    /// (the ship moves, so a cached Vector3 would go stale).
     /// </summary>
     [ClientRpc]
-    public void AssignSpawnPointClientRpc(Vector3 position, ClientRpcParams _ = default)
+    public void AssignSpawnPointClientRpc(int spawnIndex, ClientRpcParams _ = default)
     {
         if (!IsOwner) return;
-        _spawnPosition = position;
-        _verticalVelocity = 0f;          // prevent gravity from pulling player down on the first frame
+        _spawnPointIndex = spawnIndex;
+        TeleportToSpawnPoint();
+    }
+
+    private void TeleportToSpawnPoint()
+    {
+        if (_spawnPointIndex < 0) return;
+        var mgr = PlayerSpawnManager.Instance;
+        if (mgr == null) return;
+        Vector3 pos = mgr.GetSpawnPosition(_spawnPointIndex);
+        _verticalVelocity = 0f;
         _cc.enabled = false;
-        transform.position = position + Vector3.up * 0.5f;  // slight offset to clear ship deck after buoyancy shifts
+        transform.position = pos + Vector3.up * 0.5f;
         _cc.enabled = true;
     }
     private void ApplyDeadVisuals() { foreach (var r in _bodyRenderers) r.enabled = false; if (_cc) _cc.enabled = false; }
@@ -247,10 +256,8 @@ public class PlayerController : NetworkBehaviour
         // Wipe inventory — full restart means fresh start for everyone
         _inventory?.Clear();
 
-        // Teleport back to spawn — must go through CharacterController
-        _cc.enabled = false;
-        transform.position = _spawnPosition;
-        _cc.enabled = true;
+        // Teleport back to spawn — reads the spawn point's current world position
+        TeleportToSpawnPoint();
 
         // Reset suit state unconditionally (RPC may arrive late or out of order)
         _holdStartTime = -1f;
@@ -287,9 +294,7 @@ public class PlayerController : NetworkBehaviour
         _health  = maxHealth;
         _oxygen  = maxBreathSeconds;
 
-        _cc.enabled = false;
-        transform.position = _spawnPosition;
-        _cc.enabled = true;
+        TeleportToSpawnPoint();
 
         _holdStartTime = -1f;
         _hasBoots      = false;
@@ -737,16 +742,18 @@ public class PlayerController : NetworkBehaviour
             _nearestInteractable = null;
             return;
         }
-        Collider[] hits = Physics.OverlapSphere(transform.position, InteractRange);
+
+        // SphereCast along camera look direction — interact with what you aim at.
+        // Start slightly behind the camera so the sphere doesn't begin inside nearby colliders.
+        const float CastRadius  = 0.5f;
+        const float StartOffset = 0.6f;
+        Vector3 origin = cameraRoot.position - cameraRoot.forward * StartOffset;
+        Ray ray = new Ray(origin, cameraRoot.forward);
         IInteractable nearest = null;
-        float nearestDist = float.MaxValue;
-        foreach (var hit in hits)
-        {
-            var interactable = hit.GetComponentInParent<IInteractable>();
-            if (interactable == null) continue;
-            float dist = (hit.transform.position - transform.position).sqrMagnitude;
-            if (dist < nearestDist) { nearestDist = dist; nearest = interactable; }
-        }
+
+        if (Physics.SphereCast(ray, CastRadius, out RaycastHit hit, InteractRange + StartOffset))
+            nearest = hit.collider.GetComponentInParent<IInteractable>();
+
         if (nearest != _nearestInteractable)
         {
             _nearestInteractable = nearest;
@@ -1072,6 +1079,11 @@ public class PlayerController : NetworkBehaviour
         if (_health <= 0f && !_hasDied)
         {
             _hasDied = true;
+
+            // Return suit and clear ropes before entering spectator mode
+            if (_state == PlayerState.WearingSuit)
+                HandleDeathSuitReturn();
+
             EnterSpectatorMode();
             bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
             if (!networked || IsServer)
@@ -1303,6 +1315,36 @@ public class PlayerController : NetworkBehaviour
         foreach (var pc in FindObjectsByType<PlayerController>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
             if (!pc.NetworkIsDead.Value) { anyAlive = true; break; }
         if (!anyAlive) QuotaManager.Instance?.TriggerGameOver(1);
+    }
+
+    /// <summary>
+    /// Called on the owner when the player dies while wearing a suit.
+    /// Clears ropes, returns the suit to the rack (via server RPC in multiplayer).
+    /// Must run BEFORE EnterSpectatorMode changes state to Dead.
+    /// </summary>
+    private void HandleDeathSuitReturn()
+    {
+        _cableSystem?.ClearAnchor();
+        SetPumpFlowRate(0f);
+        _winchPullSpeed = 0f;
+        if (IsOwner) _networkWearingSuit.Value = false;
+
+        bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+        if (networked && _suitRack != null)
+            ReturnSuitOnDeathServerRpc(_suitRack.NetworkObjectId);
+        else
+            _suitRack?.ReturnSuit(false);
+
+        _suitRack = null;
+    }
+
+    [ServerRpc]
+    private void ReturnSuitOnDeathServerRpc(ulong rackNetworkObjectId)
+    {
+        if (!NetworkManager.SpawnManager.SpawnedObjects
+                .TryGetValue(rackNetworkObjectId, out var rackObj)) return;
+        var rack = rackObj.GetComponent<DivingSuitRack>();
+        rack?.ServerReturnSuit(false);
     }
 
     [ServerRpc]
