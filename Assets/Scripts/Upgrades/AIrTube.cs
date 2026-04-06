@@ -1,23 +1,24 @@
 using UnityEngine;
 
-public class Suit : Upgrade
+public class AirTube : Upgrade
 {
     [SerializeField]
     int cost = 100;
     [SerializeField]
-    DivingSuitRack suitRack;
+    AirPumpStation pump;
     public override void ApplyUpgrade()
     {
-        suitRack.ServerReturnSuit(true);
+        pump.Upgrade();
     }
 
     public override bool CanBuy()
     {
-        return !suitRack.NetworkSuitAvailable;
+        return !pump.upgraded;
     }
 
     public override int Cost()
     {
-        return cost
+        return cost;
     }
+
 }

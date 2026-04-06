@@ -11,7 +11,7 @@ public class BuyUI : MonoBehaviour
     [SerializeField] private Button Suit;
 
 
-    public UnityEvent<IUpgrade> TriggerBuy;
+    //public UnityEvent<IUpgrade> TriggerBuy;
     void Start()
     {
         _panel.SetActive(false);
@@ -37,18 +37,5 @@ public class BuyUI : MonoBehaviour
     void OnClose()
     {
         _panel?.SetActive(false);
-    }
-
-    public void Buy(IUpgrade upgrade)
-    {
-        if (GoldTracker.Instance.TotalGold < upgrade.Cost())
-        {
-            _noMoney.SetActive(true);
-            return;
-        }
-        
-        _noMoney.SetActive(false);
-        GoldTracker.Instance.AddGoldDirect(-upgrade.Cost());
-        upgrade.ApplyUpgrade();
     }
 }

@@ -9,10 +9,26 @@ public class MerchantManager : NetworkBehaviour
 {
     [SerializeField]
     Animator animator;
+    [SerializeField]
+    float stayDuration;
+
+    float timer;
     public void Start()
     {
         QuotaManager.Instance.OnCycleChanged += Summon;
         animator = GetComponent<Animator>();
+    }
+
+    private void Update()
+    {
+        if (stayDuration > 0)
+        {
+            stayDuration -= Time.deltaTime;
+            if (stayDuration <= 0)
+            {
+                SendOff();
+            }
+        }
     }
 
     // ── Events ────────
@@ -23,6 +39,7 @@ public class MerchantManager : NetworkBehaviour
     {
         animator.ResetTrigger("SendOff");
         animator.SetTrigger("Summon");
+        timer = stayDuration;
     }
 
     public void SendOff()
