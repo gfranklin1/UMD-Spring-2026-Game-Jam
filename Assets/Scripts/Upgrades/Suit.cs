@@ -18,6 +18,6 @@ public class Suit : Upgrade
 
     public override int Cost()
     {
-        return cost
+        return cost;
     }
 }
