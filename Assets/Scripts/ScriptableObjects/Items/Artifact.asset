@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Artifact
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemName: Artifact
-  goldValue: 100
+  goldValue: 150
   rarity: 2
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 9c21499b2504389418d7c41482fef568, type: 3}
   worldPrefab: {fileID: 6535380772811402573, guid: 1052df7c5a285434f995dc9746443a67, type: 3}

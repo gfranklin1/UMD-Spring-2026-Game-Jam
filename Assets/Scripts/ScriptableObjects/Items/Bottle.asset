@@ -15,5 +15,5 @@ MonoBehaviour:
   itemName: Bottle
   goldValue: 25
   rarity: 1
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 6c5bcaf77d8c6684d80ff9c781e3a396, type: 3}
   worldPrefab: {fileID: 1991220389193707365, guid: ef1bc9e972cbce44ea4f6900eeb4afe1, type: 3}

@@ -14,5 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemName: Shell
   goldValue: 5
-  icon: {fileID: 0}
+  rarity: 0
+  icon: {fileID: 21300000, guid: 2cd3edcccf57bfc4e8923228f569a78f, type: 3}
   worldPrefab: {fileID: 6964880605592396468, guid: cbaebf1d7d4ddda40863478707e15cb0, type: 3}
