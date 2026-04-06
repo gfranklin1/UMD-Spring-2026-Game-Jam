@@ -6,6 +6,15 @@ public class Suit : Upgrade
     int cost = 100;
     [SerializeField]
     DivingSuitRack suitRack;
+
+    void Start()
+    {
+        if (suitRack == null)
+        {
+            suitRack = FindAnyObjectByType<DivingSuitRack>();
+        }   
+    }
+
     public override void ApplyUpgrade()
     {
         suitRack.ServerReturnSuit(true);

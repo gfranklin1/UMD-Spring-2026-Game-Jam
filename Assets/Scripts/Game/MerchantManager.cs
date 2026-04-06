@@ -1,5 +1,4 @@
-﻿using GLTFast.Schema;
-using Unity.Netcode;
+﻿using Unity.Netcode;
 using UnityEngine;
 
 /// <summary>
@@ -12,6 +11,17 @@ public class MerchantManager : NetworkBehaviour
     [SerializeField]
     float stayDuration;
 
+    static MerchantManager instance;
+
+    public static MerchantManager Instance()
+    {
+        if(instance == null)
+        {
+            instance = FindAnyObjectByType<MerchantManager>();
+        }
+        return instance;
+    }
+
     float timer;
     public void Start()
     {
@@ -21,7 +31,7 @@ public class MerchantManager : NetworkBehaviour
 
     private void Update()
     {
-        if (stayDuration > 0)
+        if (animator.GetCurrentAnimatorStateInfo(0).IsName("Here") &&  stayDuration > 0)
         {
             stayDuration -= Time.deltaTime;
             if (stayDuration <= 0)
@@ -50,6 +60,6 @@ public class MerchantManager : NetworkBehaviour
 
     public void SignalMerchantLeave()
     {
-        OnMerchantShipLeave.Invoke();
+        OnMerchantShipLeave?.Invoke();
     }
 }

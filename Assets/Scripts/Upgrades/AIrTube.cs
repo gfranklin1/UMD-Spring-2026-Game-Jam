@@ -1,3 +1,4 @@
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class AirTube : Upgrade
@@ -6,6 +7,14 @@ public class AirTube : Upgrade
     int cost = 100;
     [SerializeField]
     AirPumpStation pump;
+
+    void Start()
+    {
+        if (pump == null)
+        {
+            pump = FindAnyObjectByType<AirPumpStation>();
+        }
+    }
     public override void ApplyUpgrade()
     {
         pump.Upgrade();

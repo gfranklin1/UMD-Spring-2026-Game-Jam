@@ -39,6 +39,8 @@ public class QuotaManager : NetworkBehaviour
     public int   TotalGoldEarned   => _totalGoldEarned.Value;
     public int   GameOverReason    => _gameOverReason.Value; // 0 = quota fail, 1 = death
 
+    public bool _merchantOperating = false;
+
     public int CurrentQuotaTarget
     {
         get
@@ -62,6 +64,7 @@ public class QuotaManager : NetworkBehaviour
     private void Awake()
     {
         if (Instance == null) Instance = this;
+        MerchantManager.Instance().OnMerchantShipLeave += ResumeCycle;
     }
 
     public override void OnNetworkSpawn()
@@ -73,6 +76,7 @@ public class QuotaManager : NetworkBehaviour
         _currentCycle.OnValueChanged += (prev, next) =>
         {
             OnCycleChanged?.Invoke();
+            _merchantOperating = true;
             if (next > prev) OnCycleAdvanced?.Invoke(); // quota met → revive dead players
         };
         _gameOver.OnValueChanged += (prev, cur) =>
@@ -91,7 +95,7 @@ public class QuotaManager : NetworkBehaviour
 
     private void Update()
     {
-        if (!IsServer || _gameOver.Value) return;
+        if (!IsServer || _gameOver.Value || _merchantOperating) return;
 
         _timeOfDay.Value += Time.deltaTime / dayDurationSeconds;
 
@@ -104,6 +108,11 @@ public class QuotaManager : NetworkBehaviour
             else
                 _currentDay.Value++;
         }
+    }
+
+    public void ResumeCycle()
+    {
+        _merchantOperating = true;
     }
 
     private void EndOfCycleCheck()
