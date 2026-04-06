@@ -29,8 +29,8 @@ public class DiveCableSystem : NetworkBehaviour
     [Header("Verlet Simulation")]
     [SerializeField] private int   particleCount        = 25;
     [SerializeField] private int   constraintIterations = 4;
-    [SerializeField] private float airRopeSlack          = 50f;   // total rope length (> maxCableLength for droop)
-    [SerializeField] private float commsRopeSlack         = 45f;
+    [SerializeField] private float airRopeSlack          = 34f;   // slightly longer than maxCableLength (30) for natural droop
+    [SerializeField] private float commsRopeSlack         = 29f;   // slightly longer than commsMaxCableLength (25)
     [SerializeField] private float airGravity            = -9.81f;
     [SerializeField] private float waterGravity          = -2f;
     [SerializeField] private float airDrag               = 0.99f;
@@ -39,6 +39,9 @@ public class DiveCableSystem : NetworkBehaviour
 
     [Header("Tube Mesh")]
     [SerializeField] private int tubeSides = 8;
+
+    [Header("Tug")]
+    [SerializeField] private float tugStrength = 2f;
 
     [Header("Attachment")]
     [Tooltip("Assign the helmet / top-of-head transform on the player prefab. If null a child anchor is created automatically.")]
@@ -62,11 +65,12 @@ public class DiveCableSystem : NetworkBehaviour
     private bool                _offlineCablesActive;
     private bool                _initialized;
 
-    // ─── Runtime state: Verlet ropes + tube meshes ──────────────────────────
+    // ─── Runtime state: ropes + tube meshes ────────────────────────────────
     private VerletRope         _airRope;
     private VerletRope         _commsRope;
     private TubeMeshGenerator  _airMesh;
     private TubeMeshGenerator  _commsMesh;
+    private float              _tugSagBoost;      // transient sag increase on tug, decays over time
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
     private bool IsNetworked  => NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
@@ -144,59 +148,26 @@ public class DiveCableSystem : NetworkBehaviour
         if (_pumpStation  != null) _airAnchorPos   = _pumpStation.HosePosition;
         if (_winchStation != null) _commsAnchorPos = _winchStation.RopePosition;
 
-        // Build environment struct
-        Vector3 ropeMidpoint = (PlayerAttachTransform.position +
-            (_pumpStation != null ? _pumpStation.HoseTransform.position : _airAnchorPos)) * 0.5f;
-        float waterY = _oceanWaves != null ? _oceanWaves.GetWaveHeight(ropeMidpoint) : 0f;
+        // Decay tug sag boost
+        _tugSagBoost = Mathf.MoveTowards(_tugSagBoost, 0f, Time.deltaTime * 6f);
 
-        var env = new RopeEnvironment
-        {
-            AirGravity    = airGravity,
-            WaterGravity  = waterGravity,
-            AirDrag       = airDrag,
-            WaterDrag     = waterDrag,
-            WaterSurfaceY = waterY
-        };
-
-        bool isOwnerOrOffline = !IsNetworked || IsOwner;
-
-        // --- Air hose ---
+        // --- Air hose (catenary) ---
         if (_airRope != null)
         {
             Vector3 airStart = _pumpStation != null ? _pumpStation.HoseTransform.position : _airAnchorPos;
             Vector3 airEnd   = PlayerAttachTransform.position;
-
-            if (isOwnerOrOffline)
-            {
-                _airRope.SetPinPositions(airStart, airEnd);
-                _airRope.Simulate(Time.deltaTime, env);
-            }
-            else
-            {
-                float sag = catenarySag * Mathf.Clamp01(Vector3.Distance(airStart, airEnd) / maxCableLength);
-                _airRope.GenerateCatenary(airStart, airEnd, sag);
-            }
-
+            float sag = catenarySag * Mathf.Clamp01(Vector3.Distance(airStart, airEnd) / maxCableLength);
+            _airRope.GenerateCatenary(airStart, airEnd, sag);
             _airMesh?.UpdateMesh(_airRope.Positions, _airRope.ParticleCount);
         }
 
-        // --- Comms rope ---
+        // --- Comms rope (catenary + tug boost) ---
         if (_commsRope != null)
         {
             Vector3 commsStart = _winchStation != null ? _winchStation.RopeTransform.position : _commsAnchorPos;
             Vector3 commsEnd   = PlayerAttachTransform.position;
-
-            if (isOwnerOrOffline)
-            {
-                _commsRope.SetPinPositions(commsStart, commsEnd);
-                _commsRope.Simulate(Time.deltaTime, env);
-            }
-            else
-            {
-                float sag = catenarySag * Mathf.Clamp01(Vector3.Distance(commsStart, commsEnd) / _currentCommsLength);
-                _commsRope.GenerateCatenary(commsStart, commsEnd, sag);
-            }
-
+            float sag = catenarySag * Mathf.Clamp01(Vector3.Distance(commsStart, commsEnd) / _currentCommsLength);
+            _commsRope.GenerateCatenary(commsStart, commsEnd, sag + _tugSagBoost);
             _commsMesh?.UpdateMesh(_commsRope.Positions, _commsRope.ParticleCount);
         }
     }
@@ -349,6 +320,15 @@ public class DiveCableSystem : NetworkBehaviour
         Vector3 clampedPos = anchorPos + toPlayer.normalized * maxDist;
         Vector3 correction = clampedPos - transform.position;
         _cc.Move(correction);
+    }
+
+    /// <summary>
+    /// Visual rope tug: briefly increases the catenary sag on the comms rope,
+    /// creating a visible downward pulse that decays back to normal.
+    /// </summary>
+    public void ApplyTugImpulse(bool fromStation)
+    {
+        _tugSagBoost = tugStrength;
     }
 
     public override void OnDestroy()

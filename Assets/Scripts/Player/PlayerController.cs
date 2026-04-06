@@ -60,6 +60,12 @@ public class PlayerController : NetworkBehaviour
     private InputAction _dropAction;
     private InputAction _removeBootsAction;
     private InputAction _scrollInventoryAction;
+    private InputAction _tugAction;
+    private float _lastTugTime;
+    private float _lastTugReceivedTime = -10f;
+    private int   _tugReceivedCount;
+    private const float TugCooldown = 0.4f;
+    private const float TugCountWindow = 2f;
     private bool  _hasBoots      = false;
     private float _bootKickTimer = 0f;
     private IInteractable _nearestInteractable;
@@ -154,6 +160,7 @@ public class PlayerController : NetworkBehaviour
                 _dropAction        = playerInput.actions["Drop"];
                 _removeBootsAction     = playerInput.actions["RemoveBoots"];
                 _scrollInventoryAction = playerInput.actions["ScrollInventory"];
+                _tugAction             = playerInput.actions["Tug"];
                 _interactAction.started   += OnInteractStarted;
                 _interactAction.performed += OnInteractHeld;
                 _interactAction.canceled  += OnInteractCanceled;
@@ -221,7 +228,8 @@ public class PlayerController : NetworkBehaviour
         Vector3 pos = mgr.GetSpawnPosition(_spawnPointIndex);
         _verticalVelocity = 0f;
         _cc.enabled = false;
-        transform.position = pos + Vector3.up * 0.5f;
+        // +2 m clears the deck even if the ship is mid-bounce; gravity lands the player naturally
+        transform.position = pos + Vector3.up * 2f;
         _cc.enabled = true;
     }
     private void ApplyDeadVisuals() { foreach (var r in _bodyRenderers) r.enabled = false; if (_cc) _cc.enabled = false; }
@@ -331,6 +339,9 @@ public class PlayerController : NetworkBehaviour
             QuotaManager.Instance.OnGameReset    += OnQuotaReset;
             QuotaManager.Instance.OnCycleAdvanced += OnCycleAdvancedRevive;
         }
+
+        // Rope tug input (diver in suit or winch operator)
+        CheckTugInput();
 
         // Game over — freeze everything
         if (QuotaManager.Instance != null && QuotaManager.Instance.IsGameOver) return;
@@ -744,15 +755,22 @@ public class PlayerController : NetworkBehaviour
         }
 
         // SphereCast along camera look direction — interact with what you aim at.
-        // Start slightly behind the camera so the sphere doesn't begin inside nearby colliders.
-        const float CastRadius  = 0.5f;
-        const float StartOffset = 0.6f;
-        Vector3 origin = cameraRoot.position - cameraRoot.forward * StartOffset;
-        Ray ray = new Ray(origin, cameraRoot.forward);
+        // Use SphereCastAll and skip self-hits so the player's own collider doesn't block the cast.
+        const float CastRadius = 0.3f;
+        Ray ray = new Ray(cameraRoot.position, cameraRoot.forward);
         IInteractable nearest = null;
+        float nearestDist = float.MaxValue;
 
-        if (Physics.SphereCast(ray, CastRadius, out RaycastHit hit, InteractRange + StartOffset))
-            nearest = hit.collider.GetComponentInParent<IInteractable>();
+        foreach (var hit in Physics.SphereCastAll(ray, CastRadius, InteractRange))
+        {
+            if (hit.collider.transform.IsChildOf(transform)) continue;
+            var interactable = hit.collider.GetComponentInParent<IInteractable>();
+            if (interactable != null && hit.distance < nearestDist)
+            {
+                nearest = interactable;
+                nearestDist = hit.distance;
+            }
+        }
 
         if (nearest != _nearestInteractable)
         {
@@ -1227,6 +1245,96 @@ public class PlayerController : NetworkBehaviour
         }
     }
 
+    // ── Rope Tug Communication ─────────────────────────────────────────────────
+
+    /// <summary>HUD reads these to show tug count indicator.</summary>
+    public bool TugIndicatorActive => Time.time - _lastTugReceivedTime < TugCountWindow;
+    public int  TugReceivedCount   => _tugReceivedCount;
+
+    private void CheckTugInput()
+    {
+        if (_tugAction == null || !_tugAction.WasPressedThisFrame()) return;
+        if (Time.time - _lastTugTime < TugCooldown) return;
+
+        bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+
+        // Diver tugs (wearing suit on deck, or underwater with suit)
+        bool wearingSuit = _state == PlayerState.WearingSuit
+                        || (_state == PlayerState.Underwater && _preDiveState == PlayerState.WearingSuit);
+        if (wearingSuit)
+        {
+            _lastTugTime = Time.time;
+            _cableSystem?.ApplyTugImpulse(false);
+            if (networked) TugRopeServerRpc();
+        }
+        // Winch operator tugs
+        else if (_state == PlayerState.AtStation && _currentStation is WinchStation)
+        {
+            _lastTugTime = Time.time;
+            if (networked) TugRopeFromWinchServerRpc();
+        }
+    }
+
+    private void IncrementTugCount()
+    {
+        if (Time.time - _lastTugReceivedTime > TugCountWindow)
+            _tugReceivedCount = 0;
+        _tugReceivedCount++;
+        _lastTugReceivedTime = Time.time;
+    }
+
+    [ServerRpc]
+    private void TugRopeServerRpc()
+    {
+        // Diver tugged -> find winch operator and notify them
+        foreach (var pc in FindObjectsByType<PlayerController>(FindObjectsInactive.Exclude))
+        {
+            if (pc != this && pc._state == PlayerState.AtStation && pc._currentStation is WinchStation)
+            {
+                pc.ReceiveTugFromDiverClientRpc();
+                return;
+            }
+        }
+    }
+
+    [ServerRpc]
+    private void TugRopeFromWinchServerRpc()
+    {
+        // Winch operator tugged -> find suited diver and notify them
+        foreach (var pc in FindObjectsByType<PlayerController>(FindObjectsInactive.Exclude))
+        {
+            if (pc._networkWearingSuit.Value)
+            {
+                pc.ReceiveTugFromWinchClientRpc();
+                return;
+            }
+        }
+    }
+
+    [ClientRpc]
+    private void ReceiveTugFromDiverClientRpc()
+    {
+        if (!IsOwner) return;
+        IncrementTugCount();
+        // Jerk the diver's rope visually on this client
+        foreach (var pc in FindObjectsByType<PlayerController>(FindObjectsInactive.Exclude))
+        {
+            if (pc.IsWearingSuit)
+            {
+                pc._cableSystem?.ApplyTugImpulse(false);
+                break;
+            }
+        }
+    }
+
+    [ClientRpc]
+    private void ReceiveTugFromWinchClientRpc()
+    {
+        if (!IsOwner) return;
+        IncrementTugCount();
+        _cableSystem?.ApplyTugImpulse(true);  // rope jerks toward station
+    }
+
     // ── Suit Equip/Unequip RPCs ───────────────────────────────────────────────
     // DivingSuitRack calls these on the PlayerController after the hold timer fires.
     // The server validates exclusivity before confirming to the owner.
@@ -1379,6 +1487,10 @@ public class PlayerController : NetworkBehaviour
         var loot = netObj.GetComponent<LootPickup>();
         if (loot == null) return;
         string itemId = loot.ItemId;
+
+        // Notify spawner so this point is marked as consumed and won't respawn
+        if (loot.SiteIndex >= 0 && LootSpawner.Instance != null)
+            LootSpawner.Instance.NotifyLootPickedUp(loot.SiteIndex, loot.PointIndex);
 
         // Use Despawn(false) for in-scene objects so late-joining clients
         // don't see ghost items. OnNetworkDespawn hides renderers/colliders.

@@ -122,6 +122,20 @@ public class VerletRope
     }
 
     /// <summary>
+    /// Inject velocity into the rope by offsetting previousPositions.
+    /// Bell-curve scaling: strongest at midpoint, zero at pinned endpoints.
+    /// </summary>
+    public void ApplyImpulse(Vector3 direction, float strength)
+    {
+        for (int i = 1; i < _particleCount - 1; i++)
+        {
+            float t = i / (float)(_particleCount - 1);       // 0..1
+            float scale = Mathf.Sin(t * Mathf.PI);            // 0 at ends, 1 at midpoint
+            _previousPositions[i] -= direction * (strength * scale);
+        }
+    }
+
+    /// <summary>
     /// Fill the positions array with a catenary-like curve (for non-owner visualization).
     /// </summary>
     public void GenerateCatenary(Vector3 start, Vector3 end, float sag)

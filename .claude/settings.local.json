@@ -47,7 +47,8 @@
       "Bash(python3:*)",
       "Bash(node:*)",
       "Bash(powershell:*)",
-      "Bash(tasklist)"
+      "Bash(tasklist)",
+      "mcp__ai-game-developer__gameobject-modify"
     ]
   },
   "enableAllProjectMcpServers": true,
