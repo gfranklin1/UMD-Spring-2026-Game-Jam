@@ -418,7 +418,16 @@ public class PlayerController : NetworkBehaviour
             if (networked)
             {
                 var item = _inventory?.Slots[_inventory.SelectedIndex];
-                if (item != null) DropItemServerRpc(item.name, dropPos);
+                if (item != null)
+                {
+                    ulong shipNetId = 0;
+                    if (_platformTransform != null)
+                    {
+                        var shipNetObj = _platformTransform.GetComponent<NetworkObject>();
+                        if (shipNetObj != null) shipNetId = shipNetObj.NetworkObjectId;
+                    }
+                    DropItemServerRpc(item.name, dropPos, shipNetId);
+                }
             }
             else
             {
@@ -1512,12 +1521,38 @@ public class PlayerController : NetworkBehaviour
     }
 
     [ServerRpc]
-    private void DropItemServerRpc(string itemId, Vector3 dropPos, ServerRpcParams rpc = default)
+    private void DropItemServerRpc(string itemId, Vector3 dropPos, ulong shipNetId, ServerRpcParams rpc = default)
     {
         var item = _lootRegistry?.Find(itemId);
         if (item?.worldPrefab == null) return;
-        var go = Instantiate(item.worldPrefab, dropPos, Quaternion.identity);
-        go.GetComponent<NetworkObject>()?.Spawn(true);
+
+        // Place item on a surface: deck if on ship, seabed if in water
+        if (shipNetId != 0
+            && NetworkManager.SpawnManager.SpawnedObjects.TryGetValue(shipNetId, out var shipNetObj))
+        {
+            // On ship: raycast down to find deck surface
+            if (Physics.Raycast(dropPos, Vector3.down, out RaycastHit hit, 20f))
+                dropPos = hit.point + Vector3.up * 0.05f;
+
+            var go = Instantiate(item.worldPrefab, dropPos, Quaternion.identity);
+            var netObj = go.GetComponent<NetworkObject>();
+            if (netObj != null)
+            {
+                netObj.Spawn(true);
+                netObj.TrySetParent(shipNetObj);
+            }
+        }
+        else
+        {
+            // In water: place on the seabed floor
+            var seabed = SeabedManager.Instance;
+            if (seabed != null && seabed.IsGenerated)
+                dropPos.y = seabed.GetFloorY(dropPos.x, dropPos.z) + 0.05f;
+
+            var go = Instantiate(item.worldPrefab, dropPos, Quaternion.identity);
+            go.GetComponent<NetworkObject>()?.Spawn(true);
+        }
+
         var clientParams = new ClientRpcParams
             { Send = new ClientRpcSendParams { TargetClientIds = new[] { rpc.Receive.SenderClientId } } };
         ConfirmDropClientRpc(clientParams);
