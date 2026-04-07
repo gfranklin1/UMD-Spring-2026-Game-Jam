@@ -29,17 +29,17 @@ public class MerchantManager : NetworkBehaviour
         animator = GetComponent<Animator>();
     }
 
-    private void Update()
-    {
-        if (animator.GetCurrentAnimatorStateInfo(0).IsName("Here") &&  stayDuration > 0)
-        {
-            stayDuration -= Time.deltaTime;
-            if (stayDuration <= 0)
-            {
-                SendOff();
-            }
-        }
-    }
+    //private void Update()
+    //{
+    //    if (animator.GetCurrentAnimatorStateInfo(0).IsName("Here") &&  stayDuration > 0)
+    //    {
+    //        stayDuration -= Time.deltaTime;
+    //        if (stayDuration <= 0)
+    //        {
+    //            SendOff();
+    //        }
+    //    }
+    //}
 
     // ── Events ────────
     public event System.Action OnMerchantShipLeave;
@@ -49,7 +49,7 @@ public class MerchantManager : NetworkBehaviour
     {
         animator.ResetTrigger("SendOff");
         animator.SetTrigger("Summon");
-        timer = stayDuration;
+        //timer = stayDuration;
     }
 
     public void SendOff()
