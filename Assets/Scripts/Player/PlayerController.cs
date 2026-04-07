@@ -43,6 +43,9 @@ public class PlayerController : NetworkBehaviour
     private Renderer[] _bodyRenderers = System.Array.Empty<Renderer>();
     [SerializeField] private PlayerInput playerInput;
     [SerializeField] private LootRegistry _lootRegistry;
+    [SerializeField] private AudioSource interactSound;
+    [SerializeField] private AudioSource walkSound;
+    [SerializeField] private AudioSource swimSound;
 
     private CharacterController _cc;
     private DiveCableSystem _cableSystem;
@@ -99,8 +102,13 @@ public class PlayerController : NetworkBehaviour
         NetworkVariableWritePermission.Owner);
 
     public StorageChest CurrentOpenChest => _openChest;
+    public bool OpenUI = false;
     public event System.Action<StorageChest> OnChestOpened;
     public event System.Action               OnChestClosed;
+    public event System.Action               OnOpenBuyScreen;
+    public event System.Action               OnCloseBuyScreen;
+    public event System.Action               OnOpenSellScreen;
+    public event System.Action               OnCloseSellScreen;
     private float _health;
     private float _oxygen;
     private float _currentSpeed;
@@ -364,11 +372,15 @@ public class PlayerController : NetworkBehaviour
         ApplyPlatformDelta();
 
         // Chest UI open — freeze all movement/interaction; only check for close keys
-        if (_openChest != null)
+        if (OpenUI)
         {
             var kb = UnityEngine.InputSystem.Keyboard.current;
             if (kb != null && kb.escapeKey.wasPressedThisFrame)
-                CloseChest();
+            {
+                if (_openChest != null) { CloseChest(); }
+                CloseBuyUI();
+                CloseSellUI();
+            }
             return;
         }
 
@@ -626,6 +638,11 @@ public class PlayerController : NetworkBehaviour
         bool wasGrounded = _cc.isGrounded;
         bool jumpPressedThisFrame = _cc.isGrounded && _jumpAction != null && _jumpAction.WasPressedThisFrame();
 
+        if(moveInput.magnitude > 0 && !walkSound.isPlaying)
+        {
+            walkSound.Play();
+        }
+
         if (_cc.isGrounded && _verticalVelocity < 0f)
             _verticalVelocity = -2f;
 
@@ -664,6 +681,11 @@ public class PlayerController : NetworkBehaviour
     {
         if (_moveAction == null) return;
         var moveInput = _moveAction.ReadValue<Vector2>();
+
+        if(moveInput.magnitude > 0 && !swimSound.isPlaying)
+        {
+            swimSound.Play();
+        }
 
         Transform cam = cameraRoot != null ? cameraRoot : transform;
         Vector3 forward    = Vector3.ProjectOnPlane(cam.forward, Vector3.up).normalized;
@@ -948,6 +970,7 @@ public class PlayerController : NetworkBehaviour
     {
         // Close chest UI on second E press
         if (_openChest != null) { CloseChest(); return; }
+        if(OpenUI) { CloseSellUI(); CloseBuyUI(); return; }
 
         // Loot pickup — quick tap E (works in any non-station state)
         if (_nearestLoot != null && _inventory != null && !_inventory.IsFull)
@@ -979,6 +1002,10 @@ public class PlayerController : NetworkBehaviour
         }
         else { _holdStartTime = -1f; }
 
+        if(_nearestInteractable != null)
+        {
+            interactSound.Play();
+        }
         _nearestInteractable?.OnInteractStart(this);
     }
 
@@ -1175,6 +1202,7 @@ public class PlayerController : NetworkBehaviour
 
     public void OpenChest(StorageChest chest)
     {
+        OpenUI = true;
         _openChest = chest;
         _nearestInteractable = null;  // hide interaction prompt while chest UI is open
         OnChestOpened?.Invoke(chest);
@@ -1182,9 +1210,35 @@ public class PlayerController : NetworkBehaviour
 
     public void CloseChest()
     {
+        OpenUI = false;
         _openChest = null;
         OnChestClosed?.Invoke();
     }
+
+    public void OpenBuyUI()
+    {
+        OpenUI = true;
+        OnOpenBuyScreen?.Invoke();
+    }
+
+    public void CloseBuyUI()
+    {
+        OpenUI = false;
+        OnCloseBuyScreen?.Invoke();
+    }
+
+    public void OpenSellUI()
+    {
+        OpenUI = true;
+        OnOpenSellScreen?.Invoke();
+    }
+
+    public void CloseSellUI()
+    {
+        OpenUI = false;
+        OnCloseSellScreen?.Invoke();
+    }
+
     public bool  IsUnderwater     => _state == PlayerState.Underwater;
     public bool  IsHeadUnderwater
     {

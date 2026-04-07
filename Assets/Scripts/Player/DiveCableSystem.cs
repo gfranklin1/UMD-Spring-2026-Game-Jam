@@ -11,7 +11,9 @@ public class DiveCableSystem : NetworkBehaviour
 {
     // ─── Inspector: Air Hose ────────────────────────────────────────────────
     [Header("Air Hose Constraint")]
+    [SerializeField] private float initialMaxCableLength = 30f;
     [SerializeField] private float maxCableLength = 30f;
+    [SerializeField] private float maxCableIncrement = 10f;
 
     [Header("Air Hose Appearance")]
     [SerializeField] private Material airCableMaterial;
@@ -121,6 +123,7 @@ public class DiveCableSystem : NetworkBehaviour
     private void Start()
     {
         if (!IsNetworked) InitializeLocal();
+        maxCableLength = initialMaxCableLength;
     }
 
     public override void OnNetworkSpawn()
@@ -347,6 +350,11 @@ public class DiveCableSystem : NetworkBehaviour
     public void ApplyTugImpulse(bool fromStation)
     {
         _tugSagBoost = tugStrength;
+    }
+
+    public void Upgrade()
+    {
+        maxCableLength += maxCableIncrement;
     }
 
     public override void OnDestroy()

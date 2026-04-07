@@ -14,7 +14,11 @@ public class AirPumpStation : MonoBehaviour, IInteractable
     [SerializeField] private string stationName   = "Air Pump";
     [SerializeField] private float maxPumpRate    = 3f;    // oxygen/s at full momentum
     [SerializeField] private float crankStrength  = 0.3f;  // momentum added per crank press
+    [SerializeField] private float crankUpgradedStrength = 0.5f;
     [SerializeField] private float momentumDecay  = 0.15f; // momentum lost per second (0–1 scale)
+
+    private float curCrankStrength;
+    public bool upgraded = false;
 
     [Header("Hose Attachment")]
     [Tooltip("Assign an empty child GameObject at the nozzle/port where the air hose exits the pump box.")]
@@ -36,6 +40,11 @@ public class AirPumpStation : MonoBehaviour, IInteractable
 
     /// <summary>Pump momentum 0–1. 0 = no flow, 1 = full flow.</summary>
     public float PumpMomentum => _pumpMomentum;
+
+    void Start()
+    {
+        curCrankStrength = crankStrength;
+    }
 
     // ── IInteractable ─────────────────────────────────────────────────────────
 
@@ -61,7 +70,7 @@ public class AirPumpStation : MonoBehaviour, IInteractable
 
     public void OnCrank()
     {
-        _pumpMomentum = Mathf.Min(1f, _pumpMomentum + crankStrength);
+        _pumpMomentum = Mathf.Min(1f, _pumpMomentum + curCrankStrength);
         Debug.Log($"[Pump] Crank! momentum={_pumpMomentum:F2} flow={CurrentFlowRate:F2}");
     }
 
@@ -72,6 +81,15 @@ public class AirPumpStation : MonoBehaviour, IInteractable
     private void Update()
     {
         if (_operator == null) return;
+        
         _pumpMomentum = Mathf.Max(0f, _pumpMomentum - momentumDecay * Time.deltaTime);
+    }
+
+    //  ── Upgrade ────────────────────────────────────────────
+    
+    public void Upgrade()
+    {
+        upgraded = true;
+        curCrankStrength = crankUpgradedStrength;
     }
 }
