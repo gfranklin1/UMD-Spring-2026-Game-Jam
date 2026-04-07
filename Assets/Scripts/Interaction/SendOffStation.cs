@@ -13,7 +13,7 @@ public class SendOffStation : MonoBehaviour, IInteractable
     public void OnInteractStart(PlayerController player)
     {
         if (_holdRoutine == null)
-            _holdRoutine = StartCoroutine(HoldRoutine());
+            _holdRoutine = StartCoroutine(HoldRoutine(player));
     }
 
     public void OnInteractCancel(PlayerController player) => CancelHold();
@@ -25,11 +25,20 @@ public class SendOffStation : MonoBehaviour, IInteractable
         if (_holdRoutine != null) { StopCoroutine(_holdRoutine); _holdRoutine = null; }
     }
 
-    private IEnumerator HoldRoutine()
+    private IEnumerator HoldRoutine(PlayerController player)
     {
         yield return new WaitForSeconds(holdTime);
         _holdRoutine = null;
-        var merchant = MerchantManager.Instance();
-        if (merchant != null) merchant.SendOffServerRpc();
+
+        bool networked = Unity.Netcode.NetworkManager.Singleton != null
+                      && Unity.Netcode.NetworkManager.Singleton.IsListening;
+        if (networked)
+        {
+            player?.RequestMerchantSendOffServerRpc();
+        }
+        else
+        {
+            QuotaManager.Instance?.TriggerMerchantSendOff();
+        }
     }
 }

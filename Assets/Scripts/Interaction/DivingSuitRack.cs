@@ -37,6 +37,14 @@ public class DivingSuitRack : NetworkBehaviour, IInteractable
 
     public override void OnNetworkSpawn()
     {
+        if (IsServer)
+        {
+            // Start each match from a known default state.
+            _networkSuitAvailable.Value      = true;
+            _networkSuitWearerObjectId.Value = 0UL;
+            _networkSuitHasBoots.Value       = true;
+        }
+
         _networkSuitAvailable.OnValueChanged += OnSuitAvailableChanged;
         UpdateSuitModel(_networkSuitAvailable.Value);
     }

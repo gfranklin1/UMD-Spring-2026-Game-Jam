@@ -21,6 +21,7 @@ public class DiveCableSystem : NetworkBehaviour
 
     // ─── Inspector: Comms Rope ──────────────────────────────────────────────
     [Header("Comms Rope Constraint")]
+    [SerializeField] private float initialCommsRopeLength = 5f;
     [SerializeField] private float commsMaxCableLength = 25f;
 
     [Header("Comms Rope Appearance")]
@@ -279,7 +280,7 @@ public class DiveCableSystem : NetworkBehaviour
     {
         if (IsNetworked && !IsOwner) return;
 
-        _currentCommsLength.Value = commsMaxCableLength;  // full slack on equip
+        _currentCommsLength.Value = Mathf.Clamp(initialCommsRopeLength, MinCommsRopeLength, commsMaxCableLength);
 
         if (IsNetworked) _cablesActive.Value = true;
         else             _offlineCablesActive = true;
@@ -355,6 +356,13 @@ public class DiveCableSystem : NetworkBehaviour
     public void Upgrade()
     {
         maxCableLength += maxCableIncrement;
+        initialMaxCableLength += maxCableIncrement;
+        commsMaxCableLength += maxCableIncrement;
+
+        // If already active, keep current length but ensure it's valid for the new max.
+        bool canWriteCommsLength = !IsNetworked || IsOwner;
+        if (canWriteCommsLength && _currentCommsLength.Value > 0f)
+            _currentCommsLength.Value = Mathf.Clamp(_currentCommsLength.Value, MinCommsRopeLength, commsMaxCableLength);
     }
 
     public override void OnDestroy()

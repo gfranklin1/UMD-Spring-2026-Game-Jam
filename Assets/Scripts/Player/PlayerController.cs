@@ -274,6 +274,7 @@ public class PlayerController : NetworkBehaviour
         _hasDied = false;
         _health  = maxHealth;
         _oxygen  = maxBreathSeconds;
+        _preDiveState = PlayerState.OnDeck;
 
         // Close chest UI if open
         if (_openChest != null) CloseChest();
@@ -318,6 +319,7 @@ public class PlayerController : NetworkBehaviour
         _hasDied = false;
         _health  = maxHealth;
         _oxygen  = maxBreathSeconds;
+        _preDiveState = PlayerState.OnDeck;
 
         TeleportToSpawnPoint();
 
@@ -730,7 +732,7 @@ public class PlayerController : NetworkBehaviour
         }
 
         _cc.Move((horizontal + Vector3.up * _verticalVelocity) * Time.deltaTime);
-        _cableSystem?.ClampToTetherLength(applyShipDrag: true);
+        _cableSystem?.ClampToTetherLength();
     }
 
     private void HandleSuitedUnderwaterMovement()
@@ -764,7 +766,7 @@ public class PlayerController : NetworkBehaviour
         }
 
         _cc.Move((move * bootWalkSpeed + Vector3.up * _verticalVelocity) * Time.deltaTime);
-        _cableSystem?.ClampToTetherLength(applyShipDrag: true);
+        _cableSystem?.ClampToTetherLength();
 
         // Boot kick-off: hold G for bootKickHoldTime seconds
         if (_removeBootsAction != null && _removeBootsAction.IsPressed())
@@ -1103,6 +1105,7 @@ public class PlayerController : NetworkBehaviour
         _suitRack?.ReturnSuit(_hasBoots);
         _suitRack = null;
         _state = PlayerState.OnDeck;
+        _preDiveState = PlayerState.OnDeck;
         _oxygen = maxBreathSeconds;   // back to normal breath above water
         if (IsOwner) _networkWearingSuit.Value = false;
         _cableSystem?.ClearAnchor();
@@ -1221,7 +1224,7 @@ public class PlayerController : NetworkBehaviour
             bool wearingSuit = (networked && !IsOwner)
                 ? _networkWearingSuit.Value
                 : (_state == PlayerState.WearingSuit
-                || _preDiveState == PlayerState.WearingSuit
+                || (_state == PlayerState.Underwater && _preDiveState == PlayerState.WearingSuit)
                 || (_state == PlayerState.AtStation && _suitRack != null));
 
             return wearingSuit ? maxSuitBuffer : maxBreathSeconds;
@@ -1361,6 +1364,12 @@ public class PlayerController : NetworkBehaviour
     public void UpgradeSuitServerRpc()
         => FindFirstObjectByType<DivingSuitRack>()?.ServerRestoreBoots();
 
+    [ServerRpc(RequireOwnership = false)]
+    public void RequestMerchantSendOffServerRpc()
+    {
+        QuotaManager.Instance?.TriggerMerchantSendOff();
+    }
+
     // ── Winch RPCs ──────────────────────────────────────────────────────────
     // Operator calls SendWinchPullServerRpc on their OWN PlayerController.
     // Server finds the suited diver and forwards the pull speed via ClientRpc.
@@ -1438,14 +1447,12 @@ public class PlayerController : NetworkBehaviour
     [ServerRpc]
     private void TugRopeServerRpc()
     {
-        // Diver tugged -> find winch operator and notify them
+        // Diver tugged -> notify everyone who is not the current diver.
+        // This lets all topside players see the tug indicator, not just the winch operator.
         foreach (var pc in FindObjectsByType<PlayerController>(FindObjectsInactive.Exclude))
         {
-            if (pc != this && pc._state == PlayerState.AtStation && pc._currentStation is WinchStation)
-            {
+            if (pc != this && !pc._networkWearingSuit.Value)
                 pc.ReceiveTugFromDiverClientRpc();
-                return;
-            }
         }
     }
 
@@ -1552,6 +1559,7 @@ public class PlayerController : NetworkBehaviour
         _winchPullSpeed = 0f;
         _suitRack = null;
         _state    = PlayerState.OnDeck;
+        _preDiveState = PlayerState.OnDeck;
         _oxygen   = maxBreathSeconds;
         if (IsOwner) _networkWearingSuit.Value = false;
         _cableSystem?.ClearAnchor();

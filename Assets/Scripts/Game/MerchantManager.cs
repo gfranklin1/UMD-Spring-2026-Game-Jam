@@ -1,4 +1,3 @@
-using Unity.Netcode;
 using UnityEngine;
 
 /// <summary>
@@ -6,7 +5,7 @@ using UnityEngine;
 /// Summon is triggered by QuotaManager.OnCycleChanged (fires on all clients via NetworkVariable).
 /// SendOff goes through a ServerRpc so all clients animate together.
 /// </summary>
-public class MerchantManager : NetworkBehaviour
+public class MerchantManager : MonoBehaviour
 {
     [SerializeField] Animator animator;
     [SerializeField] float stayDuration;
@@ -30,6 +29,7 @@ public class MerchantManager : NetworkBehaviour
         // OnMerchantSummon fires on all clients when the server increments the summon counter,
         // so all clients animate the merchant arriving at the same time.
         QuotaManager.Instance.OnMerchantSummon += Summon;
+        QuotaManager.Instance.OnMerchantSendOff += SendOff;
 
         // Always start hidden regardless of saved scene state.
         // MerchantReset sets these same values; we mirror them here so the boat
@@ -53,19 +53,6 @@ public class MerchantManager : NetworkBehaviour
         if (animator == null) return;
         animator.ResetTrigger("Summon");
         animator.SetTrigger("SendOff");
-    }
-
-    // ── Network: send-off must broadcast so all clients animate ───────────────
-    [ServerRpc(RequireOwnership = false)]
-    public void SendOffServerRpc()
-    {
-        SendOffClientRpc();
-    }
-
-    [ClientRpc]
-    private void SendOffClientRpc()
-    {
-        SendOff();
     }
 
     // ── Called by animation event when merchant ship has fully left ───────────

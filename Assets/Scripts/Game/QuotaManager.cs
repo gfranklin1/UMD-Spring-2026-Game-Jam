@@ -36,6 +36,10 @@ public class QuotaManager : NetworkBehaviour
     // OnValueChanged fires on all clients so they all animate the summon.
     private NetworkVariable<int> _merchantSummonCount = new(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
+    // Incremented by server each time the merchant should be sent off.
+    // OnValueChanged fires on all clients so they all animate departure.
+    private NetworkVariable<int> _merchantSendOffCount = new(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+
     // ── Public read-only accessors ───────────────────────────────────────────
 
     public int   CurrentCycle      => _currentCycle.Value;
@@ -68,6 +72,7 @@ public class QuotaManager : NetworkBehaviour
     public event System.Action OnCycleChanged;       // fires when _currentCycle increments
     public event System.Action OnCycleAdvanced;      // fires on quota met (revive dead players)
     public event System.Action OnMerchantSummon;     // fires on all clients when merchant is summoned
+    public event System.Action OnMerchantSendOff;    // fires on all clients when merchant is sent off
     public event System.Action OnGameOverTriggered;
     public event System.Action OnGameReset;
 
@@ -96,6 +101,7 @@ public class QuotaManager : NetworkBehaviour
 
         // Merchant summon is driven by this counter so all clients react simultaneously
         _merchantSummonCount.OnValueChanged += (_, __) => OnMerchantSummon?.Invoke();
+        _merchantSendOffCount.OnValueChanged += (_, __) => OnMerchantSendOff?.Invoke();
 
         _gameOver.OnValueChanged += (prev, cur) =>
         {
@@ -162,6 +168,23 @@ public class QuotaManager : NetworkBehaviour
             _pendingCycleEnd = false;
             FinalizeEndOfCycle();
         }
+    }
+
+    /// <summary>
+    /// Broadcast merchant send-off to all clients.
+    /// Safe in offline mode (invokes event directly).
+    /// </summary>
+    public void TriggerMerchantSendOff()
+    {
+        bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+        if (!networked)
+        {
+            OnMerchantSendOff?.Invoke();
+            return;
+        }
+
+        if (!IsServer) return;
+        _merchantSendOffCount.Value++;
     }
 
     /// <summary>Server-only: check quota after the merchant has departed.</summary>
