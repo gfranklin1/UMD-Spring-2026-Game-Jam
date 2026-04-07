@@ -1588,6 +1588,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 736048002958629152, guid: d159dea8a299c984db4497974adc9293, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 35cc7dacdf9505341b5136b072498d48, type: 2}
     - target: {fileID: 6425309897431934546, guid: d159dea8a299c984db4497974adc9293, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -1633,14 +1637,6 @@ PrefabInstance:
       value: Ocean
       objectReference: {fileID: 0}
     - target: {fileID: 7682545998686656802, guid: d159dea8a299c984db4497974adc9293, type: 3}
-      propertyPath: gridSize
-      value: 64
-      objectReference: {fileID: 0}
-    - target: {fileID: 7682545998686656802, guid: d159dea8a299c984db4497974adc9293, type: 3}
-      propertyPath: tileSize
-      value: 16
-      objectReference: {fileID: 0}
-    - target: {fileID: 7682545998686656802, guid: d159dea8a299c984db4497974adc9293, type: 3}
       propertyPath: foamThreshold
       value: 0.324
       objectReference: {fileID: 0}
@@ -1651,6 +1647,46 @@ PrefabInstance:
     - target: {fileID: 7682545998686656802, guid: d159dea8a299c984db4497974adc9293, type: 3}
       propertyPath: waveIntensity
       value: 3.54
+      objectReference: {fileID: 0}
+    - target: {fileID: 7682545998686656802, guid: d159dea8a299c984db4497974adc9293, type: 3}
+      propertyPath: centerResolution
+      value: 256
+      objectReference: {fileID: 0}
+    - target: {fileID: 7682545998686656802, guid: d159dea8a299c984db4497974adc9293, type: 3}
+      propertyPath: waveLayers.Array.data[0].amplitude
+      value: 0.09
+      objectReference: {fileID: 0}
+    - target: {fileID: 7682545998686656802, guid: d159dea8a299c984db4497974adc9293, type: 3}
+      propertyPath: waveLayers.Array.data[0].direction
+      value: -20
+      objectReference: {fileID: 0}
+    - target: {fileID: 7682545998686656802, guid: d159dea8a299c984db4497974adc9293, type: 3}
+      propertyPath: waveLayers.Array.data[0].frequency
+      value: 1.44
+      objectReference: {fileID: 0}
+    - target: {fileID: 7682545998686656802, guid: d159dea8a299c984db4497974adc9293, type: 3}
+      propertyPath: waveLayers.Array.data[1].direction
+      value: 14
+      objectReference: {fileID: 0}
+    - target: {fileID: 7682545998686656802, guid: d159dea8a299c984db4497974adc9293, type: 3}
+      propertyPath: waveLayers.Array.data[1].frequency
+      value: 0.21
+      objectReference: {fileID: 0}
+    - target: {fileID: 7682545998686656802, guid: d159dea8a299c984db4497974adc9293, type: 3}
+      propertyPath: waveLayers.Array.data[2].amplitude
+      value: 0.04
+      objectReference: {fileID: 0}
+    - target: {fileID: 7682545998686656802, guid: d159dea8a299c984db4497974adc9293, type: 3}
+      propertyPath: waveLayers.Array.data[2].frequency
+      value: 1.06
+      objectReference: {fileID: 0}
+    - target: {fileID: 7682545998686656802, guid: d159dea8a299c984db4497974adc9293, type: 3}
+      propertyPath: waveLayers.Array.data[3].amplitude
+      value: 0.22
+      objectReference: {fileID: 0}
+    - target: {fileID: 7682545998686656802, guid: d159dea8a299c984db4497974adc9293, type: 3}
+      propertyPath: waveLayers.Array.data[3].frequency
+      value: 0.37
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -2539,3 +2575,4 @@ SceneRoots:
   - {fileID: 5996301699433888238}
   - {fileID: 224568756871943623}
   - {fileID: 581952076}
+  - {fileID: 1185435338}

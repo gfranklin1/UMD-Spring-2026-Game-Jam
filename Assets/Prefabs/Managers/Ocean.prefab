@@ -103,8 +103,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5faa456892be99e408cf2fafd7e3878c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OceanWaves
-  gridSize: 40
-  tileSize: 5
+  shipTransform: {fileID: 0}
+  centerResolution: 128
+  centerCellSize: 2
+  ringCount: 4
   waveIntensity: 2.07
   foamThreshold: 0.55
   foamFalloff: 2
@@ -129,3 +131,4 @@ MonoBehaviour:
     speed: 2.9
     steepness: 0.2
     direction: 110
+  oceanCompute: {fileID: 7200000, guid: 28b2253398c459842bfba80af245f833, type: 3}
