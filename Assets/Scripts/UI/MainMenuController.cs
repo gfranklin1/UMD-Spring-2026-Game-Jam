@@ -5,7 +5,7 @@ using UnityEngine.UI;
 /// <summary>
 /// Main menu UI for the standalone MainMenu scene.
 /// No NetworkManager dependency — uses NetworkLauncher to carry host/join
-/// intent into SampleScene where NetworkSetup picks it up in Start().
+/// intent into the gameplay scene where NetworkSetup picks it up in Start().
 /// </summary>
 public class MainMenuController : MonoBehaviour
 {
@@ -21,6 +21,7 @@ public class MainMenuController : MonoBehaviour
     [SerializeField] private Button _hostButton;
     [SerializeField] private Button _joinButton;
     [SerializeField] private Button _settingsButton;
+    [SerializeField] private Button _controlsButton;
     [SerializeField] private Button _quitButton;
 
     [Header("Join Panel")]
@@ -32,15 +33,21 @@ public class MainMenuController : MonoBehaviour
     [SerializeField] private Button                _settingsCloseButton;
     [SerializeField] private SettingsMenuController _settingsMenuController;
 
+    [Header("Controls Panel")]
+    [SerializeField] private GameObject _controlsPanel;
+
     private void Awake()
     {
         SettingsManager.ApplyAll();
 
         // onClick events are wired as persistent listeners in the scene.
         // No AddListener needed here — avoids double-firing.
+        // Exception: controls button is wired here since it's added after initial setup.
+        _controlsButton?.onClick.AddListener(OnControls);
 
         if (_joinPanel     != null) _joinPanel.SetActive(false);
         if (_settingsPanel != null) _settingsPanel.SetActive(false);
+        if (_controlsPanel != null) _controlsPanel.SetActive(false);
         if (_menuPanel     != null) _menuPanel.SetActive(true);
 
         if (_nameInput != null)
@@ -58,7 +65,7 @@ public class MainMenuController : MonoBehaviour
     {
         SaveAndApplyName();
         NetworkLauncher.SetHost();
-        SceneManager.LoadScene("SampleScene");
+        SceneManager.LoadScene(1);
     }
 
     private void OnJoin()
@@ -71,7 +78,7 @@ public class MainMenuController : MonoBehaviour
         SaveAndApplyName();
         string ip = _ipInput != null ? _ipInput.text : "127.0.0.1";
         NetworkLauncher.SetClient(ip);
-        SceneManager.LoadScene("SampleScene");
+        SceneManager.LoadScene(1);
     }
 
     private void OnBack()
@@ -88,6 +95,16 @@ public class MainMenuController : MonoBehaviour
     private void OnSettingsClose()
     {
         if (_settingsPanel != null) _settingsPanel.SetActive(false);
+    }
+
+    private void OnControls()
+    {
+        if (_controlsPanel != null) _controlsPanel.SetActive(true);
+    }
+
+    private void OnControlsClose()
+    {
+        if (_controlsPanel != null) _controlsPanel.SetActive(false);
     }
 
     private void SaveAndApplyName()

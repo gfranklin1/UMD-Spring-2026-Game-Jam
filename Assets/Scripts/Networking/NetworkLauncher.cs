@@ -1,5 +1,5 @@
 /// <summary>
-/// Static intent store — set in MainMenuController before loading SampleScene,
+/// Static intent store — set in MainMenuController before loading the gameplay scene,
 /// read by NetworkSetup.Start() to auto-start as host or client.
 /// Pure static class; statics survive scene transitions without DontDestroyOnLoad.
 /// </summary>
