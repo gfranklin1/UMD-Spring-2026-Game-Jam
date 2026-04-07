@@ -1171,7 +1171,7 @@ AudioSource:
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: 782faa41526e82c49a7e12b81d6b4a38, type: 3}
   m_PlayOnAwake: 1
-  m_Volume: 0.2
+  m_Volume: 0.1
   m_Pitch: 1
   Loop: 1
   Mute: 0
@@ -1530,6 +1530,10 @@ PrefabInstance:
     - target: {fileID: 4616650945689646596, guid: 1c8c4f0046edd034496801cd6d261ac8, type: 3}
       propertyPath: animator
       value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 4888631769522514563, guid: 1c8c4f0046edd034496801cd6d261ac8, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -1.33
       objectReference: {fileID: 0}
     - target: {fileID: 8354817202046640929, guid: 1c8c4f0046edd034496801cd6d261ac8, type: 3}
       propertyPath: m_ApplyRootMotion

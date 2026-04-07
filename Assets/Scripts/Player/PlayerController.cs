@@ -43,6 +43,9 @@ public class PlayerController : NetworkBehaviour
     private Renderer[] _bodyRenderers = System.Array.Empty<Renderer>();
     [SerializeField] private PlayerInput playerInput;
     [SerializeField] private LootRegistry _lootRegistry;
+    [SerializeField] private AudioSource interactSound;
+    [SerializeField] private AudioSource walkSound;
+    [SerializeField] private AudioSource swimSound;
 
     private CharacterController _cc;
     private DiveCableSystem _cableSystem;
@@ -602,6 +605,11 @@ public class PlayerController : NetworkBehaviour
         bool wasGrounded = _cc.isGrounded;
         bool jumpPressedThisFrame = _cc.isGrounded && _jumpAction != null && _jumpAction.WasPressedThisFrame();
 
+        if(moveInput.magnitude > 0 && !walkSound.isPlaying)
+        {
+            walkSound.Play();
+        }
+
         if (_cc.isGrounded && _verticalVelocity < 0f)
             _verticalVelocity = -2f;
 
@@ -640,6 +648,11 @@ public class PlayerController : NetworkBehaviour
     {
         if (_moveAction == null) return;
         var moveInput = _moveAction.ReadValue<Vector2>();
+
+        if(moveInput.magnitude > 0 && !swimSound.isPlaying)
+        {
+            swimSound.Play();
+        }
 
         Transform cam = cameraRoot != null ? cameraRoot : transform;
         Vector3 forward    = Vector3.ProjectOnPlane(cam.forward, Vector3.up).normalized;
@@ -947,6 +960,10 @@ public class PlayerController : NetworkBehaviour
         }
         else { _holdStartTime = -1f; }
 
+        if(_nearestInteractable != null)
+        {
+            interactSound.Play();
+        }
         _nearestInteractable?.OnInteractStart(this);
     }
 
