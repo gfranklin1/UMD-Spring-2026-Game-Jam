@@ -11,7 +11,7 @@ public abstract class Upgrade : MonoBehaviour
     public Text costLabel;
     public void Buy()
     {
-        if (!CanBuy() && GoldTracker.Instance.TotalGold < Cost())
+        if (!CanBuy() || GoldTracker.Instance.TotalGold < Cost())
         {
             cantBuyLabel.SetActive(true);
             return;
