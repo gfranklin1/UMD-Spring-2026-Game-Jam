@@ -9,6 +9,11 @@ public abstract class Upgrade : MonoBehaviour
     public GameObject cantBuyLabel;
     [SerializeField]
     public Text costLabel;
+    protected virtual void Awake()
+    {
+        if (costLabel != null) costLabel.text = $"{Cost()}g";
+    }
+
     public void Buy()
     {
         if (!CanBuy() || GoldTracker.Instance.TotalGold < Cost())
@@ -25,9 +30,6 @@ public abstract class Upgrade : MonoBehaviour
     public abstract int Cost();
     public abstract bool CanBuy();
 
-    public void OnPointerEnter()
-    {
-        costLabel.text = $"{Cost()}g";
-    }
+    public void OnPointerEnter() { }
 
 }

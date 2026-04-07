@@ -1233,6 +1233,8 @@ public class PlayerController : NetworkBehaviour
     public void OpenChest(StorageChest chest)
     {
         OpenUI = true;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
         _openChest = chest;
         _nearestInteractable = null;  // hide interaction prompt while chest UI is open
         OnChestOpened?.Invoke(chest);
@@ -1241,6 +1243,8 @@ public class PlayerController : NetworkBehaviour
     public void CloseChest()
     {
         OpenUI = false;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
         _openChest = null;
         OnChestClosed?.Invoke();
     }
@@ -1248,24 +1252,32 @@ public class PlayerController : NetworkBehaviour
     public void OpenBuyUI()
     {
         OpenUI = true;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
         OnOpenBuyScreen?.Invoke();
     }
 
     public void CloseBuyUI()
     {
         OpenUI = false;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
         OnCloseBuyScreen?.Invoke();
     }
 
     public void OpenSellUI()
     {
         OpenUI = true;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
         OnOpenSellScreen?.Invoke();
     }
 
     public void CloseSellUI()
     {
         OpenUI = false;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
         OnCloseSellScreen?.Invoke();
     }
 
@@ -1274,6 +1286,9 @@ public class PlayerController : NetworkBehaviour
     {
         get
         {
+            if (_cc == null) _cc = GetComponent<CharacterController>();
+            if (_cc == null) return false;
+
             float headY = transform.position.y + _cc.height * 0.5f;
             return _state == PlayerState.Underwater && headY < _currentWaveHeight;
         }

@@ -30,6 +30,14 @@ public class MerchantManager : NetworkBehaviour
         // OnMerchantSummon fires on all clients when the server increments the summon counter,
         // so all clients animate the merchant arriving at the same time.
         QuotaManager.Instance.OnMerchantSummon += Summon;
+
+        // Always start hidden regardless of saved scene state.
+        // MerchantReset sets these same values; we mirror them here so the boat
+        // is never visible at scene load even if the scene was saved mid-arrival.
+        var buoyancy = GetComponentInChildren<ShipBuoyancy>();
+        if (buoyancy != null) buoyancy.enabled = false;
+        transform.localPosition = new Vector3(-10f, -1000f, 3.04507f);
+        animator.Play("NotHere", 0, 0f);
     }
 
     // ── Local animation helpers ───────────────────────────────────────────────
