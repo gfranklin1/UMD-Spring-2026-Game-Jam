@@ -1,28 +1,28 @@
 using UnityEngine;
 
-public class Suit : Upgrade
+public class Cable : Upgrade
 {
     [SerializeField]
     int cost = 100;
     [SerializeField]
-    DivingSuitRack suitRack;
+    DiveCableSystem cable;
 
     void Start()
     {
-        if (suitRack == null)
+        if (cable == null)
         {
-            suitRack = FindAnyObjectByType<DivingSuitRack>();
-        }   
+            cable = FindAnyObjectByType<DiveCableSystem>();
+        }
     }
 
     public override void ApplyUpgrade()
     {
-        suitRack.ReturnSuit(true);
+        cable.Upgrade();
     }
 
     public override bool CanBuy()
     {
-        return !suitRack.NetworkSuitHasBoots;
+        return true;
     }
 
     public override int Cost()

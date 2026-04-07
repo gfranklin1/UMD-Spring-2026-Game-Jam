@@ -548,7 +548,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: 
+  m_Text: Faster Pumping
 --- !u!1 &364393174518028081
 GameObject:
   m_ObjectHideFlags: 0
@@ -1723,8 +1723,9 @@ GameObject:
   - component: {fileID: 7358396584878364670}
   - component: {fileID: 7534795713495947665}
   - component: {fileID: 2924702400145648273}
+  - component: {fileID: 3729961184699791640}
   m_Layer: 0
-  m_Name: Flashlight
+  m_Name: Cable
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1747,10 +1748,10 @@ RectTransform:
   - {fileID: 2068314795168733254}
   m_Father: {fileID: 7046990118435833435}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 385, y: -403.8}
-  m_SizeDelta: {x: 115, y: 90}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &7358396584878364670
 CanvasRenderer:
@@ -1833,7 +1834,48 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 7534795713495947665}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 730335280252495143}
+        m_TargetAssemblyTypeName: Cable, Assembly-CSharp
+        m_MethodName: Buy
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+--- !u!114 &3729961184699791640
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1594281351167218812}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0b148fe25e99eb48b9724523833bab1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.EventSystems.EventTrigger
+  m_Delegates:
+  - eventID: 0
+    callback:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 730335280252495143}
+          m_TargetAssemblyTypeName: Cable, Assembly-CSharp
+          m_MethodName: OnPointerEnter
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
 --- !u!1 &1714392522230828571
 GameObject:
   m_ObjectHideFlags: 0
@@ -1962,9 +2004,9 @@ RectTransform:
   - {fileID: 1497853484776027403}
   m_Father: {fileID: 1169918287498843083}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 322, y: -35}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 60, y: 60}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &3937593903986903633
@@ -2519,6 +2561,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe10cc29b2b287246974730209f48375, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AirTube
+  descriptionLabel: {fileID: 0}
+  cantBuyLabel: {fileID: 5528147566202150104}
+  costLabel: {fileID: 1321579200400416707}
   cost: 100
   pump: {fileID: 0}
 --- !u!1 &2740248333986225027
@@ -3879,9 +3924,9 @@ RectTransform:
   - {fileID: 1330556489732953571}
   m_Father: {fileID: 1169918287498843083}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 256, y: -35}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 60, y: 60}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5852571398868676102
@@ -4081,6 +4126,7 @@ GameObject:
   - component: {fileID: 2158788635793035125}
   - component: {fileID: 4133151099149614207}
   - component: {fileID: 4171222606094609294}
+  - component: {fileID: 654492716271959371}
   m_Layer: 0
   m_Name: DivingSuit
   m_TagString: Untagged
@@ -4105,10 +4151,10 @@ RectTransform:
   - {fileID: 4632310589485338768}
   m_Father: {fileID: 7046990118435833435}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 135, y: -403.8}
-  m_SizeDelta: {x: 115, y: 90}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2158788635793035125
 CanvasRenderer:
@@ -4204,6 +4250,35 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+--- !u!114 &654492716271959371
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3984906957690146799}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0b148fe25e99eb48b9724523833bab1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.EventSystems.EventTrigger
+  m_Delegates:
+  - eventID: 0
+    callback:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 3567714606648856609}
+          m_TargetAssemblyTypeName: Suit, Assembly-CSharp
+          m_MethodName: OnPointerEnter
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
 --- !u!1 &4053901494106037649
 GameObject:
   m_ObjectHideFlags: 0
@@ -5764,7 +5839,7 @@ GameObject:
   - component: {fileID: 5793973855806358550}
   - component: {fileID: 1321579200400416707}
   m_Layer: 0
-  m_Name: TotalGoldText
+  m_Name: cost
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5830,7 +5905,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: 'Chest Value: 0g'
+  m_Text: Cost
 --- !u!1 &5522245063135989366
 GameObject:
   m_ObjectHideFlags: 0
@@ -5864,9 +5939,9 @@ RectTransform:
   - {fileID: 711341378678552914}
   m_Father: {fileID: 1169918287498843083}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 190, y: -35}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 60, y: 60}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &4344432023284199337
@@ -5919,12 +5994,12 @@ GameObject:
   - component: {fileID: 4700939285365726780}
   - component: {fileID: 6699537146971998788}
   m_Layer: 0
-  m_Name: PlayerHotbarLabel
+  m_Name: cantbuy
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2782531034277633388
 RectTransform:
   m_ObjectHideFlags: 0
@@ -5985,7 +6060,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Your Items
+  m_Text: Can't Buy
 --- !u!1 &5586930456507793999
 GameObject:
   m_ObjectHideFlags: 0
@@ -6422,9 +6497,9 @@ RectTransform:
   - {fileID: 904891741816256363}
   m_Father: {fileID: 1169918287498843083}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 124, y: -35}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 60, y: 60}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &7652359755239463334
@@ -6543,7 +6618,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: 
+  m_Text: Longer cable
 --- !u!1 &5877065987569894984
 GameObject:
   m_ObjectHideFlags: 0
@@ -6577,9 +6652,9 @@ RectTransform:
   - {fileID: 872750074994603336}
   m_Father: {fileID: 1169918287498843083}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 58, y: -35}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 60, y: 60}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &6290337680364886125
@@ -6713,7 +6788,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 815401076
+  GlobalObjectIdHash: 3347681588
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -6954,7 +7029,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DiveCableSystem
   ShowTopMostFoldoutHeaderGroup: 1
+  initialMaxCableLength: 30
   maxCableLength: 25
+  maxCableIncrement: 10
   segmentPrefab: {fileID: 111581540926508874, guid: 609c49de6a399488991c3e28a8bd1e37, type: 3}
   ropeLength: 30
   segmentsDistance: 0.5
@@ -8526,6 +8603,7 @@ GameObject:
   - component: {fileID: 4371656339058661175}
   - component: {fileID: 3258031359910270013}
   - component: {fileID: 2674889916807368016}
+  - component: {fileID: 2100306477629815686}
   m_Layer: 0
   m_Name: AirTube
   m_TagString: Untagged
@@ -8550,10 +8628,10 @@ RectTransform:
   - {fileID: 3915940982178072226}
   m_Father: {fileID: 7046990118435833435}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 260, y: -403.8}
-  m_SizeDelta: {x: 115, y: 90}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &4371656339058661175
 CanvasRenderer:
@@ -8637,18 +8715,47 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 5899794769293236169}
-        m_TargetAssemblyTypeName: 
-        m_MethodName: 
+      - m_Target: {fileID: 8886612700890695125}
+        m_TargetAssemblyTypeName: AirTube, Assembly-CSharp
+        m_MethodName: Buy
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: 
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
           m_IntArgument: 0
           m_FloatArgument: 0
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+--- !u!114 &2100306477629815686
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6708190781549757728}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0b148fe25e99eb48b9724523833bab1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.EventSystems.EventTrigger
+  m_Delegates:
+  - eventID: 0
+    callback:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 8886612700890695125}
+          m_TargetAssemblyTypeName: AirTube, Assembly-CSharp
+          m_MethodName: OnPointerEnter
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
 --- !u!1 &6905240897611921311
 GameObject:
   m_ObjectHideFlags: 0
@@ -8882,7 +8989,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: 
+  m_Text: Boots
 --- !u!1 &7100909377467732398
 GameObject:
   m_ObjectHideFlags: 0
@@ -10138,7 +10245,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2068314795168733254}
-  - component: {fileID: 4449786849305224359}
+  - component: {fileID: 730335280252495143}
   m_Layer: 0
   m_Name: Upgrade
   m_TagString: Untagged
@@ -10165,7 +10272,7 @@ RectTransform:
   m_AnchoredPosition: {x: -250.00002, y: 0}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &4449786849305224359
+--- !u!114 &730335280252495143
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -10174,11 +10281,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 8239567976808792805}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: af7852208fc27ca40b97c2224466dbc5, type: 3}
+  m_Script: {fileID: 11500000, guid: c2a0e8e8fb3612948983c4b96e0ab7a5, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Suit
+  m_EditorClassIdentifier: Assembly-CSharp::Cable
+  descriptionLabel: {fileID: 0}
+  cantBuyLabel: {fileID: 5528147566202150104}
+  costLabel: {fileID: 1321579200400416707}
   cost: 100
-  suitRack: {fileID: 0}
+  cable: {fileID: 4033270893151352343}
 --- !u!1 &8247866087615814228
 GameObject:
   m_ObjectHideFlags: 0
@@ -10873,6 +10983,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: af7852208fc27ca40b97c2224466dbc5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Suit
+  descriptionLabel: {fileID: 0}
+  cantBuyLabel: {fileID: 5528147566202150104}
+  costLabel: {fileID: 1321579200400416707}
   cost: 100
   suitRack: {fileID: 0}
 --- !u!1 &8888670399527387767
