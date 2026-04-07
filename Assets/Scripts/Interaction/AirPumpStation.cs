@@ -42,6 +42,8 @@ public class AirPumpStation : MonoBehaviour, IInteractable
     {
         curCrankStrength = crankStrength;
     }
+    /// <summary>Pump momentum 0–1. 0 = no flow, 1 = full flow.</summary>
+    public float PumpMomentum => _pumpMomentum;
 
     // ── IInteractable ─────────────────────────────────────────────────────────
 

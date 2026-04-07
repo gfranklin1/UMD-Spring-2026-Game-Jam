@@ -176,17 +176,7 @@ public class QuotaManager : NetworkBehaviour
 
     private void RespawnLoot()
     {
-        // Re-enable all in-scene LootPickup objects that were despawned by PickupLootServerRpc
-        var pickups = FindObjectsByType<LootPickup>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-        foreach (var loot in pickups)
-        {
-            if (!loot.gameObject.activeSelf)
-            {
-                loot.gameObject.SetActive(true);
-                var netObj = loot.GetComponent<NetworkObject>();
-                if (netObj != null && !netObj.IsSpawned)
-                    netObj.Spawn(true);
-            }
-        }
+        if (LootSpawner.Instance != null)
+            LootSpawner.Instance.ResetAllLoot();
     }
 }

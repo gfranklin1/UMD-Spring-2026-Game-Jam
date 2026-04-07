@@ -7,8 +7,20 @@ public class LootPickup : NetworkBehaviour
     [SerializeField] private ItemData itemData;
     [SerializeField] private string   itemId;    // must match the ItemData SO asset name in LootRegistry
 
-    public ItemData Item   => itemData;
-    public string   ItemId => itemId;
+    private int _siteIndex  = -1;
+    private int _pointIndex = -1;
+
+    public ItemData Item       => itemData;
+    public string   ItemId     => itemId;
+    public int      SiteIndex  => _siteIndex;
+    public int      PointIndex => _pointIndex;
+
+    /// <summary>Called by LootSpawner to tag dynamically-spawned loot with its site/point key.</summary>
+    public void SetSpawnKey(int siteIndex, int pointIndex)
+    {
+        _siteIndex  = siteIndex;
+        _pointIndex = pointIndex;
+    }
 
     /// <summary>
     /// Hide until network-spawned so late-joining clients don't see

@@ -1,0 +1,163 @@
+// GPU Gerstner wave displacement + flat-shading normals for the LOD ocean mesh.
+//
+// Kernel 1 — DisplaceVertices: evaluates Gerstner waves at each vertex rest
+//            position and writes displaced position + foam colour.
+// Kernel 2 — ComputeSmoothNormals: computes per-vertex Gerstner normals
+//            (one thread per vertex) so the ocean shades smoothly.
+//
+// The vertex buffer is bound as RWByteAddressBuffer (Raw) so we can write
+// directly into the Mesh's GPU vertex buffer with no CPU read-back.
+
+#pragma kernel DisplaceVertices
+#pragma kernel ComputeSmoothNormals
+
+// ─── Vertex buffer layout ────────────────────────────────────────────────────
+// Matches the VertexAttributeDescriptor array declared in OceanWaves.cs:
+//   float3 position  (12 bytes)  offset  0
+//   float3 normal    (12 bytes)  offset 12
+//   float4 color     (16 bytes)  offset 24
+//                    ─────────── total  40 bytes per vertex
+#define VERTEX_STRIDE 40
+
+// ─── Wave layer data ─────────────────────────────────────────────────────────
+
+struct WaveLayer
+{
+    float amplitude;
+    float frequency;
+    float speed;
+    float steepness;
+    float dirX;
+    float dirZ;
+};
+
+StructuredBuffer<WaveLayer> _WaveLayers;
+StructuredBuffer<float2>    _RestXZ;
+RWByteAddressBuffer         _VertexBuffer;
+
+uint  _VertexCount;
+uint  _TriangleCount;
+uint  _WaveLayerCount;
+float _SyncedTime;
+float _WaveIntensity;
+float _FoamThreshold;
+float _FoamFalloff;
+float _MaxAmplitude;
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+float3 LoadPosition(uint vertIdx)
+{
+    return asfloat(_VertexBuffer.Load3(vertIdx * VERTEX_STRIDE));
+}
+
+void StorePosition(uint vertIdx, float3 pos)
+{
+    _VertexBuffer.Store3(vertIdx * VERTEX_STRIDE, asuint(pos));
+}
+
+void StoreNormal(uint vertIdx, float3 nrm)
+{
+    _VertexBuffer.Store3(vertIdx * VERTEX_STRIDE + 12, asuint(nrm));
+}
+
+void StoreColor(uint vertIdx, float4 col)
+{
+    _VertexBuffer.Store4(vertIdx * VERTEX_STRIDE + 24, asuint(col));
+}
+
+void EvaluateGerstnerSurface(float2 rest, out float3 pos, out float3 normal)
+{
+    float rx = rest.x;
+    float rz = rest.y;
+
+    float dX = 0.0, dY = 0.0, dZ = 0.0;
+    float3 tangentX = float3(1.0, 0.0, 0.0);
+    float3 tangentZ = float3(0.0, 0.0, 1.0);
+
+    for (uint w = 0; w < _WaveLayerCount; w++)
+    {
+        WaveLayer wl = _WaveLayers[w];
+        float amp  = wl.amplitude * _WaveIntensity;
+        float ph   = wl.frequency * (wl.dirX * rx + wl.dirZ * rz) - wl.speed * _SyncedTime;
+        float sinP, cosP;
+        sincos(ph, sinP, cosP);
+
+        float qkA = wl.steepness * amp * wl.frequency;
+        float kA  = amp * wl.frequency;
+
+        dX += wl.steepness * amp * wl.dirX * cosP;
+        dZ += wl.steepness * amp * wl.dirZ * cosP;
+        dY += amp * sinP;
+
+        tangentX.x -= qkA * wl.dirX * wl.dirX * sinP;
+        tangentX.y += kA  * wl.dirX * cosP;
+        tangentX.z -= qkA * wl.dirX * wl.dirZ * sinP;
+
+        tangentZ.x -= qkA * wl.dirX * wl.dirZ * sinP;
+        tangentZ.y += kA  * wl.dirZ * cosP;
+        tangentZ.z -= qkA * wl.dirZ * wl.dirZ * sinP;
+    }
+
+    pos = float3(rx + dX, dY, rz + dZ);
+    normal = normalize(cross(tangentZ, tangentX));
+}
+
+// ─── Kernel 1: Gerstner displacement ────────────────────────────────────────
+
+[numthreads(256, 1, 1)]
+void DisplaceVertices(uint3 id : SV_DispatchThreadID)
+{
+    uint vi = id.x;
+    if (vi >= _VertexCount) return;
+
+    float2 rest = _RestXZ[vi];
+    float rx = rest.x;
+    float rz = rest.y;
+
+    float dX = 0.0, dY = 0.0, dZ = 0.0;
+
+    for (uint w = 0; w < _WaveLayerCount; w++)
+    {
+        WaveLayer wl = _WaveLayers[w];
+        float amp  = wl.amplitude * _WaveIntensity;
+        float ph   = wl.frequency * (wl.dirX * rx + wl.dirZ * rz) - wl.speed * _SyncedTime;
+        float sinP, cosP;
+        sincos(ph, sinP, cosP);
+
+        dX += wl.steepness * amp * wl.dirX * cosP;
+        dZ += wl.steepness * amp * wl.dirZ * cosP;
+        dY += amp * sinP;
+    }
+
+    float3 pos = float3(rx + dX, dY, rz + dZ);
+
+    // ── Foam ─────────────────────────────────────────────────────────────
+    float maxAmp     = _MaxAmplitude * max(_WaveIntensity, 0.001);
+    float normHeight = dY / maxAmp;
+    float foamRaw    = (normHeight - _FoamThreshold) / (1.0 - _FoamThreshold + 0.001);
+    float foam       = pow(saturate(foamRaw), 1.0 / _FoamFalloff);
+    foam            *= saturate(_WaveIntensity * 0.55);
+
+    StorePosition(vi, pos);
+    StoreColor(vi, float4(foam, 0.0, 0.0, 1.0));
+}
+
+// ─── Kernel 2: smooth normals ───────────────────────────────────────────────
+//
+// One thread per vertex. Compute the analytic Gerstner surface normal from the
+// same rest-space sample used for displacement.
+
+[numthreads(256, 1, 1)]
+void ComputeSmoothNormals(uint3 id : SV_DispatchThreadID)
+{
+    uint vi = id.x;
+    if (vi >= _VertexCount) return;
+
+    float2 rest = _RestXZ[vi];
+    float3 pos;
+    float3 n;
+    EvaluateGerstnerSurface(rest, pos, n);
+
+    StoreNormal(vi, n);
+}

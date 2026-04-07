@@ -13,9 +13,13 @@ MonoBehaviour:
   m_Name: LootRegistry
   m_EditorClassIdentifier: Assembly-CSharp::LootRegistry
   items:
-  - {fileID: 11400000, guid: 8b9397cacdc48c647bf00c2f890a52bc, type: 2}
-  - {fileID: 11400000, guid: e629bd6061701bd47b9135c14861380f, type: 2}
-  - {fileID: 11400000, guid: fe40d7f25dd6638439987c1cc7f82dc7, type: 2}
   - {fileID: 11400000, guid: 11b872b54af84154c88ded6ca89fe2be, type: 2}
+  - {fileID: 11400000, guid: 5a484580876f0314988655a56d417983, type: 2}
   - {fileID: 11400000, guid: 3ee6dfdffde6a5343be69bda06a1035b, type: 2}
   - {fileID: 11400000, guid: a7344b18f3db7034e800109e681ee1d3, type: 2}
+  - {fileID: 11400000, guid: fe40d7f25dd6638439987c1cc7f82dc7, type: 2}
+  - {fileID: 11400000, guid: e629bd6061701bd47b9135c14861380f, type: 2}
+  - {fileID: 11400000, guid: 47eeedc456cb1f54197e5aca2f474488, type: 2}
+  - {fileID: 11400000, guid: 23e8e7da24aefff40bc04c677aa7cf64, type: 2}
+  - {fileID: 11400000, guid: 8b9397cacdc48c647bf00c2f890a52bc, type: 2}
+  - {fileID: 11400000, guid: b0a652e047e5bda498128a7d44daff87, type: 2}

@@ -14,5 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemName: Cannon Ball
   goldValue: 15
-  icon: {fileID: 0}
+  rarity: 1
+  icon: {fileID: 21300000, guid: 3eff0450d4a8df94caa701154544f9b6, type: 3}
   worldPrefab: {fileID: 8352092803660834045, guid: 8c182b2393a9a4647af99d015db1094c, type: 3}

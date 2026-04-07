@@ -7,6 +7,9 @@ public class DivingSuitRack : NetworkBehaviour, IInteractable
     [SerializeField] private float equipHoldTime   = 2f;
     [SerializeField] private float unequipHoldTime = 1f;
 
+    [Tooltip("The inner suit model that hides when the suit is taken and reappears when returned.")]
+    [SerializeField] private GameObject _suitModel;
+
     // ─── Networked state (server-authoritative) ───────────────────────────────
     private NetworkVariable<bool> _networkSuitAvailable = new(
         true,
@@ -31,6 +34,22 @@ public class DivingSuitRack : NetworkBehaviour, IInteractable
     private Coroutine _holdRoutine;
 
     private bool IsNetworked => NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+
+    public override void OnNetworkSpawn()
+    {
+        _networkSuitAvailable.OnValueChanged += OnSuitAvailableChanged;
+        UpdateSuitModel(_networkSuitAvailable.Value);
+    }
+
+    private void OnSuitAvailableChanged(bool prev, bool available)
+    {
+        UpdateSuitModel(available);
+    }
+
+    private void UpdateSuitModel(bool available)
+    {
+        if (_suitModel != null) _suitModel.SetActive(available);
+    }
 
     // ─── Public read properties (used by PlayerController ServerRpcs) ─────────
     public bool  NetworkSuitAvailable   => IsNetworked ? _networkSuitAvailable.Value      : _localSuitAvailable;
@@ -88,6 +107,7 @@ public class DivingSuitRack : NetworkBehaviour, IInteractable
                 {
                     _localSuitAvailable = false;
                     _localSuitWearer    = player;
+                    UpdateSuitModel(false);
                     player.EquipSuit(this, _localSuitHasBoots);
                 }));
             }
@@ -127,6 +147,7 @@ public class DivingSuitRack : NetworkBehaviour, IInteractable
         _localSuitAvailable = true;
         _localSuitHasBoots  = hadBoots;
         _localSuitWearer    = null;
+        UpdateSuitModel(true);
     }
 
     // ─── Game Reset ───────────────────────────────────────────────────────────
@@ -162,6 +183,7 @@ public class DivingSuitRack : NetworkBehaviour, IInteractable
             _localSuitAvailable = true;
             _localSuitHasBoots  = true;
             _localSuitWearer    = null;
+            UpdateSuitModel(true);
             wearer?.ForceUnequipSuitLocal();
         }
     }

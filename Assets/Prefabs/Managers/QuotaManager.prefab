@@ -45,7 +45,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 749132233
+  GlobalObjectIdHash: 1493353874
   InScenePlacedSourceGlobalObjectIdHash: 749132233
   DeferredDespawnTick: 0
   Ownership: 1
@@ -73,8 +73,8 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   quotaTargets: 64000000fa000000f401000020030000
   quotaIncrement: 400
-  dayDurationSeconds: 90
-  daysPerCycle: 3
+  dayDurationSeconds: 150
+  daysPerCycle: 4
   SeabedSeed:
     UpdateTraits:
       MinSecondsBetweenUpdates: 0

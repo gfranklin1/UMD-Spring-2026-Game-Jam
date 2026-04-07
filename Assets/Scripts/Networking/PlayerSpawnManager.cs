@@ -9,9 +9,16 @@ using UnityEngine;
 /// </summary>
 public class PlayerSpawnManager : MonoBehaviour
 {
+    public static PlayerSpawnManager Instance { get; private set; }
+
     [SerializeField] private Transform[] spawnPoints;
 
     private int _nextIndex;
+
+    private void Awake()
+    {
+        Instance = this;
+    }
 
     private void Start()
     {
@@ -21,6 +28,7 @@ public class PlayerSpawnManager : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (Instance == this) Instance = null;
         if (NetworkManager.Singleton != null)
             NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
     }
@@ -36,13 +44,24 @@ public class PlayerSpawnManager : MonoBehaviour
         var pc = playerObj.GetComponent<PlayerController>();
         if (pc == null) return;
 
-        Vector3 pos = spawnPoints[_nextIndex % spawnPoints.Length].position;
+        int index = _nextIndex % spawnPoints.Length;
         _nextIndex++;
 
         var rpcParams = new ClientRpcParams
         {
             Send = new ClientRpcSendParams { TargetClientIds = new[] { clientId } }
         };
-        pc.AssignSpawnPointClientRpc(pos, rpcParams);
+        pc.AssignSpawnPointClientRpc(index, rpcParams);
+    }
+
+    /// <summary>
+    /// Returns the current world position of a spawn point by index.
+    /// Used by PlayerController at respawn time so the position tracks the moving ship.
+    /// </summary>
+    public Vector3 GetSpawnPosition(int index)
+    {
+        if (spawnPoints == null || spawnPoints.Length == 0)
+            return Vector3.zero;
+        return spawnPoints[index % spawnPoints.Length].position;
     }
 }
