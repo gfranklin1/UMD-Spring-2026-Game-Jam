@@ -74,14 +74,12 @@ public class AirPumpStation : MonoBehaviour, IInteractable
         Debug.Log($"[Pump] Crank! momentum={_pumpMomentum:F2} flow={CurrentFlowRate:F2}");
     }
 
-    public void OnOperatorLeft(PlayerController op) => _pumpMomentum = 0f;
+    public void OnOperatorLeft(PlayerController op) { }
 
     // ── Decay momentum each frame ────────────────────────────────────────────
 
     private void Update()
     {
-        if (_operator == null) return;
-        
         _pumpMomentum = Mathf.Max(0f, _pumpMomentum - momentumDecay * Time.deltaTime);
     }
 

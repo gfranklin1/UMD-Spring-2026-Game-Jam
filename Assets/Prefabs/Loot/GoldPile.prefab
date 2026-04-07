@@ -22,15 +22,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 3661d9bc416d1ca43ba806c4fd419615, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: -0.8793903
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 3661d9bc416d1ca43ba806c4fd419615, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: 7.088736
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 3661d9bc416d1ca43ba806c4fd419615, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: 6.4471903
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 3661d9bc416d1ca43ba806c4fd419615, type: 3}
       propertyPath: m_LocalRotation.w
@@ -124,8 +124,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 4108690108
-  InScenePlacedSourceGlobalObjectIdHash: 0
+  GlobalObjectIdHash: 1099360110
+  InScenePlacedSourceGlobalObjectIdHash: 4108690108
   DeferredDespawnTick: 0
   Ownership: 1
   AlwaysReplicateAsRoot: 0
@@ -150,5 +150,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LootPickup
   ShowTopMostFoldoutHeaderGroup: 1
-  itemData: {fileID: 0}
-  itemId: 
+  itemData: {fileID: 11400000, guid: 23e8e7da24aefff40bc04c677aa7cf64, type: 2}
+  itemId: Gold Pile

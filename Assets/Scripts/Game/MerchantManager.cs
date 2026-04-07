@@ -27,7 +27,9 @@ public class MerchantManager : NetworkBehaviour
     public void Start()
     {
         if (animator == null) animator = GetComponent<Animator>();
-        QuotaManager.Instance.OnCycleChanged += Summon;
+        // OnMerchantSummon fires on all clients when the server increments the summon counter,
+        // so all clients animate the merchant arriving at the same time.
+        QuotaManager.Instance.OnMerchantSummon += Summon;
     }
 
     // ── Local animation helpers ───────────────────────────────────────────────

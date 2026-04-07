@@ -150,6 +150,13 @@ public class DivingSuitRack : NetworkBehaviour, IInteractable
         UpdateSuitModel(true);
     }
 
+    /// <summary>Server-only: restore boots to the suit without returning it (upgrade effect).</summary>
+    public void ServerRestoreBoots()
+    {
+        if (!IsServer) return;
+        _networkSuitHasBoots.Value = true;
+    }
+
     // ─── Game Reset ───────────────────────────────────────────────────────────
 
     /// <summary>

@@ -128,8 +128,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 1594490831
-  InScenePlacedSourceGlobalObjectIdHash: 0
+  GlobalObjectIdHash: 4170110959
+  InScenePlacedSourceGlobalObjectIdHash: 1594490831
   DeferredDespawnTick: 0
   Ownership: 1
   AlwaysReplicateAsRoot: 0
@@ -154,5 +154,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LootPickup
   ShowTopMostFoldoutHeaderGroup: 1
-  itemData: {fileID: 0}
-  itemId: 
+  itemData: {fileID: 11400000, guid: b0a652e047e5bda498128a7d44daff87, type: 2}
+  itemId: Sword

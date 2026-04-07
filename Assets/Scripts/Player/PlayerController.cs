@@ -114,6 +114,7 @@ public class PlayerController : NetworkBehaviour
     private float _currentSpeed;
     private float _pumpFlowRate;   // oxygen/s currently delivered by the pump (0 when not pumping)
     private float _lastSentPumpFlow;
+    private AirPumpStation _recentPumpStation;
     private float _winchPullSpeed;   // m/s upward pull from winch operator (0 when idle)
     private float _lastSentWinchPull;
 
@@ -358,6 +359,7 @@ public class PlayerController : NetworkBehaviour
 
         // Rope tug input (diver in suit or winch operator)
         CheckTugInput();
+        RelayPumpDecayFlow();
 
         // Game over — freeze everything
         if (QuotaManager.Instance != null && QuotaManager.Instance.IsGameOver) return;
@@ -859,6 +861,7 @@ public class PlayerController : NetworkBehaviour
 
         if (_currentStation is AirPumpStation pump)
         {
+            _recentPumpStation = pump;
             if (_jumpAction != null && _jumpAction.WasPressedThisFrame())
                 pump.OnCrank();
 
@@ -1036,11 +1039,7 @@ public class PlayerController : NetworkBehaviour
         if (_currentStation is AirPumpStation pump)
         {
             pump.OnOperatorLeft(this);
-            // Tell server to zero the diver's flow rate
-            _lastSentPumpFlow = 0f;
-            bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
-            if (networked) SendPumpFlowServerRpc(0f);
-            else           ApplyPumpFlowLocal(0f);
+            _recentPumpStation = pump;
         }
         if (_currentStation is WinchStation winchStation)
         {
@@ -1053,6 +1052,30 @@ public class PlayerController : NetworkBehaviour
         _currentStation?.Release(this);
         _currentStation = null;
         _state = _suitRack != null ? PlayerState.WearingSuit : PlayerState.OnDeck;
+    }
+
+    private void RelayPumpDecayFlow()
+    {
+        if (_recentPumpStation == null) return;
+
+        // While actively operating the pump, HandleAtStationState already relays flow.
+        if (_state == PlayerState.AtStation && _currentStation is AirPumpStation)
+            return;
+
+        float flow = _recentPumpStation.CurrentFlowRate;
+        if (flow < 0.001f)
+        {
+            flow = 0f;
+            _recentPumpStation = null;
+        }
+
+        if (Mathf.Abs(flow - _lastSentPumpFlow) > 0.05f)
+        {
+            _lastSentPumpFlow = flow;
+            bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+            if (networked) SendPumpFlowServerRpc(flow);
+            else           ApplyPumpFlowLocal(flow);
+        }
     }
 
     public void EquipSuit(DivingSuitRack rack, bool hasBoots = true)
@@ -1299,6 +1322,29 @@ public class PlayerController : NetworkBehaviour
             }
         }
     }
+
+    // ── Upgrade RPCs — broadcast upgrade effects to all clients ─────────────
+
+    [ServerRpc(RequireOwnership = false)]
+    public void UpgradePumpServerRpc() => UpgradePumpClientRpc();
+
+    [ClientRpc]
+    private void UpgradePumpClientRpc()
+        => FindFirstObjectByType<AirPumpStation>()?.Upgrade();
+
+    [ServerRpc(RequireOwnership = false)]
+    public void UpgradeCableServerRpc() => UpgradeCableClientRpc();
+
+    [ClientRpc]
+    private void UpgradeCableClientRpc()
+    {
+        foreach (var c in FindObjectsByType<DiveCableSystem>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+            c.Upgrade();
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    public void UpgradeSuitServerRpc()
+        => FindFirstObjectByType<DivingSuitRack>()?.ServerRestoreBoots();
 
     // ── Winch RPCs ──────────────────────────────────────────────────────────
     // Operator calls SendWinchPullServerRpc on their OWN PlayerController.

@@ -70,9 +70,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AirPumpStation
   stationName: Air Pump
-  maxPumpRate: 5
+  maxPumpRate: 4
   crankStrength: 0.3
+  crankUpgradedStrength: 0.5
   momentumDecay: 0.12
+  upgraded: 0
   _hosePort: {fileID: 5934812959509169898}
 --- !u!114 &4137360180441179131
 MonoBehaviour:
@@ -240,10 +242,39 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 360010545ae86bf42b893102605b6fd5, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7177725154337010978}
   m_SourcePrefab: {fileID: 100100000, guid: 360010545ae86bf42b893102605b6fd5, type: 3}
 --- !u!4 &1355460881228202365 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 360010545ae86bf42b893102605b6fd5, type: 3}
   m_PrefabInstance: {fileID: 1532676328471848598}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1838665818397465543 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 360010545ae86bf42b893102605b6fd5, type: 3}
+  m_PrefabInstance: {fileID: 1532676328471848598}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &7177725154337010978
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1838665818397465543}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1.9525478, y: 0.6734233, z: 1.1275709}
+  m_Center: {x: 0.0045450926, y: 0.28107333, z: -0.0081038475}

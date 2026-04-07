@@ -22,15 +22,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: a1845977fba8a7a4aa1163544f9b72cc, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: 0.45541924
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: a1845977fba8a7a4aa1163544f9b72cc, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: 7.0886774
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: a1845977fba8a7a4aa1163544f9b72cc, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: 7.217588
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: a1845977fba8a7a4aa1163544f9b72cc, type: 3}
       propertyPath: m_LocalRotation.w
@@ -124,8 +124,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 4198615423
-  InScenePlacedSourceGlobalObjectIdHash: 0
+  GlobalObjectIdHash: 1863596400
+  InScenePlacedSourceGlobalObjectIdHash: 4198615423
   DeferredDespawnTick: 0
   Ownership: 1
   AlwaysReplicateAsRoot: 0
@@ -150,5 +150,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LootPickup
   ShowTopMostFoldoutHeaderGroup: 1
-  itemData: {fileID: 0}
-  itemId: 
+  itemData: {fileID: 11400000, guid: 5a484580876f0314988655a56d417983, type: 2}
+  itemId: Skull

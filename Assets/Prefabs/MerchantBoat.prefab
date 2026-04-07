@@ -76,6 +76,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MerchantManager
   ShowTopMostFoldoutHeaderGroup: 1
+  animator: {fileID: 8354817202046640929}
+  stayDuration: 0
 --- !u!95 &8354817202046640929
 Animator:
   serializedVersion: 7
