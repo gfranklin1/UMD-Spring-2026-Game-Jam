@@ -1747,10 +1747,10 @@ RectTransform:
   - {fileID: 2068314795168733254}
   m_Father: {fileID: 7046990118435833435}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 385, y: -403.8}
-  m_SizeDelta: {x: 115, y: 90}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &7358396584878364670
 CanvasRenderer:
@@ -1962,9 +1962,9 @@ RectTransform:
   - {fileID: 1497853484776027403}
   m_Father: {fileID: 1169918287498843083}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 322, y: -35}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 60, y: 60}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &3937593903986903633
@@ -3879,9 +3879,9 @@ RectTransform:
   - {fileID: 1330556489732953571}
   m_Father: {fileID: 1169918287498843083}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 256, y: -35}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 60, y: 60}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5852571398868676102
@@ -4105,10 +4105,10 @@ RectTransform:
   - {fileID: 4632310589485338768}
   m_Father: {fileID: 7046990118435833435}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 135, y: -403.8}
-  m_SizeDelta: {x: 115, y: 90}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2158788635793035125
 CanvasRenderer:
@@ -5864,9 +5864,9 @@ RectTransform:
   - {fileID: 711341378678552914}
   m_Father: {fileID: 1169918287498843083}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 190, y: -35}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 60, y: 60}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &4344432023284199337
@@ -6422,9 +6422,9 @@ RectTransform:
   - {fileID: 904891741816256363}
   m_Father: {fileID: 1169918287498843083}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 124, y: -35}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 60, y: 60}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &7652359755239463334
@@ -6577,9 +6577,9 @@ RectTransform:
   - {fileID: 872750074994603336}
   m_Father: {fileID: 1169918287498843083}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 58, y: -35}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 60, y: 60}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &6290337680364886125
@@ -6713,7 +6713,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 815401076
+  GlobalObjectIdHash: 1253576338
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -6941,6 +6941,7 @@ MonoBehaviour:
   _bootPromptText: {fileID: 0}
   _bootKickFillRT: {fileID: 0}
   _quotaDayText: {fileID: 6987065708729178397}
+  _tugIndicatorText: {fileID: 0}
 --- !u!114 &4033270893151352343
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6955,17 +6956,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DiveCableSystem
   ShowTopMostFoldoutHeaderGroup: 1
   maxCableLength: 25
-  segmentPrefab: {fileID: 111581540926508874, guid: 609c49de6a399488991c3e28a8bd1e37, type: 3}
-  ropeLength: 30
-  segmentsDistance: 0.5
-  ropeThickness: 0.1
   airCableMaterial: {fileID: 2100000, guid: 6b59dd7583a590148b38c03dcb545567, type: 2}
   cableRadius: 0.04
   commsMaxCableLength: 25
-  commsRopeLength: 45
-  commsSegmentsDistance: 0.5
   commsRopeMaterial: {fileID: 2100000, guid: 8ea7326bc33c8d4479b7cf99f6ebf2cb, type: 2}
   commsRopeRadius: 0.02
+  particleCount: 25
+  constraintIterations: 4
+  airRopeSlack: 34
+  commsRopeSlack: 29
+  airGravity: -9.81
+  waterGravity: -2
+  airDrag: 0.99
+  waterDrag: 0.92
+  catenarySag: 3
+  tubeSides: 8
+  tugStrength: 2
   _playerAttachPoint: {fileID: 5881578563765247234}
 --- !u!114 &2178648748266582751
 MonoBehaviour:
@@ -8550,10 +8556,10 @@ RectTransform:
   - {fileID: 3915940982178072226}
   m_Father: {fileID: 7046990118435833435}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 260, y: -403.8}
-  m_SizeDelta: {x: 115, y: 90}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &4371656339058661175
 CanvasRenderer:
