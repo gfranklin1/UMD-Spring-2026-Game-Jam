@@ -5857,8 +5857,8 @@ MonoBehaviour:
   - {fileID: 5119262818453879854}
   selectionHighlight: {fileID: 1352668272663660150}
   lootPromptText: {fileID: 0}
-  emptySlotColor: {r: 1, g: 1, b: 1, a: 0.15}
-  filledSlotColor: {r: 1, g: 1, b: 1, a: 0.8}
+  emptySlotColor: {r: 1, g: 1, b: 1, a: 0.1}
+  filledSlotColor: {r: 1, g: 1, b: 1, a: 0.35}
   itemNameLabel: {fileID: 2988269625244141195}
   goldTotalLabel: {fileID: 3714563095431316385}
   dropPromptLabel: {fileID: 621954371553175602}

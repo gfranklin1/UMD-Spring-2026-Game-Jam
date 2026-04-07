@@ -15,5 +15,5 @@ MonoBehaviour:
   itemName: Skull
   goldValue: 30
   rarity: 1
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 587a04dd12843ba4886741e350715a89, type: 3}
   worldPrefab: {fileID: 2809303206482566689, guid: 5daff121de6826f4c8029fda5e22b206, type: 3}
