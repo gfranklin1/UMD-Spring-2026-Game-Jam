@@ -14,6 +14,7 @@ public class PlayerSpawnManager : MonoBehaviour
     [SerializeField] private Transform[] spawnPoints;
 
     private int _nextIndex;
+    private readonly System.Collections.Generic.HashSet<ulong> _assignedClients = new();
 
     private void Awake()
     {
@@ -24,6 +25,13 @@ public class PlayerSpawnManager : MonoBehaviour
     {
         if (NetworkManager.Singleton == null) return;
         NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
+
+        // If host/client connected before this Start ran, backfill assignments.
+        if (NetworkManager.Singleton.IsServer)
+        {
+            foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
+                OnClientConnected(clientId);
+        }
     }
 
     private void OnDestroy()
@@ -37,6 +45,7 @@ public class PlayerSpawnManager : MonoBehaviour
     {
         if (!NetworkManager.Singleton.IsServer) return;
         if (spawnPoints == null || spawnPoints.Length == 0) return;
+        if (_assignedClients.Contains(clientId)) return;
 
         var playerObj = NetworkManager.Singleton.ConnectedClients[clientId].PlayerObject;
         if (playerObj == null) return;
@@ -46,6 +55,11 @@ public class PlayerSpawnManager : MonoBehaviour
 
         int index = _nextIndex % spawnPoints.Length;
         _nextIndex++;
+        _assignedClients.Add(clientId);
+
+        // Set authoritative position server-side immediately.
+        Vector3 serverPos = spawnPoints[index].position + Vector3.up * 2f;
+        playerObj.transform.position = serverPos;
 
         var rpcParams = new ClientRpcParams
         {

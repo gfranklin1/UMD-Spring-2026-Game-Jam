@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Polished main menu overlay. Shows when the network isn't active.
-/// Sits on a Canvas in SampleScene (sort order 30) so it covers everything.
+/// Sits on a Canvas in the gameplay scene (sort order 30) so it covers everything.
 /// </summary>
 public class MainMenuUI : MonoBehaviour
 {

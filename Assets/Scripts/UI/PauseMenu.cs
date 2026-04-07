@@ -21,11 +21,16 @@ public class PauseMenu : MonoBehaviour
     [Header("Settings Prefab")]
     [SerializeField] private GameObject _settingsPanelPrefab;
 
+    [Header("Controls Prefab")]
+    [SerializeField] private Button     _controlsButton;
+    [SerializeField] private GameObject _controlsPanelPrefab;
+
     private PlayerController _playerController;
     private PlayerCamera     _playerCamera;
     private PlayerInput      _playerInput;
     private NetworkBehaviour _netBehaviour;
     private GameObject       _settingsInstance;
+    private GameObject       _controlsInstance;
     private bool             _isPaused;
 
     private void Awake()
@@ -37,6 +42,7 @@ public class PauseMenu : MonoBehaviour
 
         _resumeButton?.onClick.AddListener(Resume);
         _settingsButton?.onClick.AddListener(OpenSettings);
+        _controlsButton?.onClick.AddListener(OpenControls);
         _mainMenuButton?.onClick.AddListener(OnMainMenu);
 
         if (_pauseCanvas != null) _pauseCanvas.enabled = false;
@@ -85,11 +91,16 @@ public class PauseMenu : MonoBehaviour
     {
         _isPaused = false;
 
-        // Destroy settings instance if open
+        // Destroy settings / controls instances if open
         if (_settingsInstance != null)
         {
             Destroy(_settingsInstance);
             _settingsInstance = null;
+        }
+        if (_controlsInstance != null)
+        {
+            Destroy(_controlsInstance);
+            _controlsInstance = null;
         }
 
         if (_pausePanel  != null) _pausePanel.SetActive(false);
@@ -142,6 +153,38 @@ public class PauseMenu : MonoBehaviour
             Destroy(_settingsInstance);
             _settingsInstance = null;
         }
+
+        // Show pause panel again when controls panel is closed via its Back button
+        if (_isPaused && _controlsInstance != null && !_controlsInstance.activeSelf)
+        {
+            if (_pausePanel != null) _pausePanel.SetActive(true);
+            Destroy(_controlsInstance);
+            _controlsInstance = null;
+        }
+    }
+
+    private void OpenControls()
+    {
+        if (_controlsPanelPrefab == null || _settingsContainer == null) return;
+
+        if (_controlsInstance == null)
+        {
+            _controlsInstance = Instantiate(_controlsPanelPrefab, _settingsContainer);
+
+            var rt = _controlsInstance.GetComponent<RectTransform>();
+            if (rt != null)
+            {
+                rt.anchorMin     = Vector2.zero;
+                rt.anchorMax     = Vector2.one;
+                rt.offsetMin     = Vector2.zero;
+                rt.offsetMax     = Vector2.zero;
+                rt.localScale    = Vector3.one;
+                rt.localPosition = Vector3.zero;
+            }
+        }
+
+        _controlsInstance.SetActive(true);
+        if (_pausePanel != null) _pausePanel.SetActive(false);
     }
 
     private void OnMainMenu()
