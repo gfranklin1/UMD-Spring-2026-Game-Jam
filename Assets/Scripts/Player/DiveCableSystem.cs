@@ -61,7 +61,9 @@ public class DiveCableSystem : NetworkBehaviour
     private Vector3             _airAnchorPos;
     private Vector3             _commsAnchorPos;
     private Transform           _headAnchor;
-    private float               _currentCommsLength;
+    private readonly NetworkVariable<float> _currentCommsLength = new(0f,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Owner);
     private bool                _offlineCablesActive;
     private bool                _initialized;
 
@@ -71,23 +73,25 @@ public class DiveCableSystem : NetworkBehaviour
     private TubeMeshGenerator  _airMesh;
     private TubeMeshGenerator  _commsMesh;
     private float              _tugSagBoost;      // transient sag increase on tug, decays over time
+    private Vector3            _prevCommsAnchorPos;
+    private bool               _prevCommsAnchorValid;
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
     private bool IsNetworked  => NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
     private bool CablesActive => IsNetworked ? _cablesActive.Value : _offlineCablesActive;
 
     /// <summary>Effective max distance the player can go from the ship (min of both cables).</summary>
-    public float EffectiveMaxLength => Mathf.Min(maxCableLength, _currentCommsLength);
+    public float EffectiveMaxLength => Mathf.Min(maxCableLength, _currentCommsLength.Value);
 
     /// <summary>Current dynamic comms rope length (shortened by winch reel-in).</summary>
-    public float CurrentCommsLength => _currentCommsLength;
+    public float CurrentCommsLength => _currentCommsLength.Value;
 
     public const float MinCommsRopeLength = 3f;
 
     /// <summary>Set the dynamic comms rope length (called by PlayerController when winch reels in/out).</summary>
     public void SetCommsRopeLength(float length)
     {
-        _currentCommsLength = Mathf.Clamp(length, MinCommsRopeLength, commsMaxCableLength);
+        _currentCommsLength.Value = Mathf.Clamp(length, MinCommsRopeLength, commsMaxCableLength);
     }
 
     private Transform PlayerAttachTransform
@@ -166,7 +170,7 @@ public class DiveCableSystem : NetworkBehaviour
         {
             Vector3 commsStart = _winchStation != null ? _winchStation.RopeTransform.position : _commsAnchorPos;
             Vector3 commsEnd   = PlayerAttachTransform.position;
-            float sag = catenarySag * Mathf.Clamp01(Vector3.Distance(commsStart, commsEnd) / _currentCommsLength);
+            float sag = catenarySag * Mathf.Clamp01(Vector3.Distance(commsStart, commsEnd) / _currentCommsLength.Value);
             _commsRope.GenerateCatenary(commsStart, commsEnd, sag + _tugSagBoost);
             _commsMesh?.UpdateMesh(_commsRope.Positions, _commsRope.ParticleCount);
         }
@@ -221,7 +225,9 @@ public class DiveCableSystem : NetworkBehaviour
             _winchStation = FindAnyObjectByType<WinchStation>();
         if (_winchStation != null)
         {
-            _commsAnchorPos = _winchStation.RopePosition;
+            _commsAnchorPos       = _winchStation.RopePosition;
+            _prevCommsAnchorPos   = _commsAnchorPos;
+            _prevCommsAnchorValid = true;
             Vector3 commsStart = _winchStation.RopeTransform.position;
 
             _commsRope = new VerletRope(particleCount, commsRopeSlack, constraintIterations);
@@ -232,6 +238,7 @@ public class DiveCableSystem : NetworkBehaviour
 
     private void StopRope()
     {
+        _prevCommsAnchorValid = false;
         _airRope = null;
         _commsRope = null;
 
@@ -258,7 +265,7 @@ public class DiveCableSystem : NetworkBehaviour
                 ? Mathf.Clamp01(Vector3.Distance(transform.position, _airAnchorPos) / maxCableLength)
                 : 0f;
             float commsTension = _winchStation != null
-                ? Mathf.Clamp01(Vector3.Distance(transform.position, _commsAnchorPos) / _currentCommsLength)
+                ? Mathf.Clamp01(Vector3.Distance(transform.position, _commsAnchorPos) / _currentCommsLength.Value)
                 : 0f;
 
             return Mathf.Max(airTension, commsTension);
@@ -269,7 +276,7 @@ public class DiveCableSystem : NetworkBehaviour
     {
         if (IsNetworked && !IsOwner) return;
 
-        _currentCommsLength = commsMaxCableLength;  // full slack on equip
+        _currentCommsLength.Value = commsMaxCableLength;  // full slack on equip
 
         if (IsNetworked) _cablesActive.Value = true;
         else             _offlineCablesActive = true;
@@ -287,7 +294,7 @@ public class DiveCableSystem : NetworkBehaviour
         StopRope();
     }
 
-    public void ClampToTetherLength()
+    public void ClampToTetherLength(bool applyShipDrag = false)
     {
         if (IsNetworked && !IsOwner) return;
         if (!CablesActive || _cc == null) return;
@@ -295,6 +302,17 @@ public class DiveCableSystem : NetworkBehaviour
         // Keep anchor positions fresh (ship moves every frame)
         if (_pumpStation  != null) _airAnchorPos   = _pumpStation.HosePosition;
         if (_winchStation != null) _commsAnchorPos = _winchStation.RopePosition;
+
+        // Drag the diver along with the ship by applying the anchor's per-frame delta.
+        // Only when actually underwater — not when standing on deck wearing the suit.
+        if (applyShipDrag && _prevCommsAnchorValid && _winchStation != null)
+        {
+            Vector3 anchorDelta = _commsAnchorPos - _prevCommsAnchorPos;
+            if (anchorDelta.sqrMagnitude > 0.0001f)
+                _cc.Move(anchorDelta);
+        }
+        _prevCommsAnchorPos   = _commsAnchorPos;
+        _prevCommsAnchorValid = _winchStation != null;
 
         // Use the shorter of the two cables as the effective max
         float effectiveMax = EffectiveMaxLength;
@@ -304,7 +322,7 @@ public class DiveCableSystem : NetworkBehaviour
 
         // Also clamp to comms rope anchor (winch station) if it exists
         if (_winchStation != null)
-            ClampToAnchor(_commsAnchorPos, _currentCommsLength);
+            ClampToAnchor(_commsAnchorPos, _currentCommsLength.Value);
     }
 
     /// <summary>

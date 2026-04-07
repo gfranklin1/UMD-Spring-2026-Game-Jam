@@ -5775,10 +5775,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DiveCableSystem
   ShowTopMostFoldoutHeaderGroup: 1
-  maxCableLength: 25
+  maxCableLength: 40
   airCableMaterial: {fileID: 2100000, guid: 6b59dd7583a590148b38c03dcb545567, type: 2}
   cableRadius: 0.04
-  commsMaxCableLength: 25
+  commsMaxCableLength: 40
   commsRopeMaterial: {fileID: 2100000, guid: 8ea7326bc33c8d4479b7cf99f6ebf2cb, type: 2}
   commsRopeRadius: 0.02
   particleCount: 25

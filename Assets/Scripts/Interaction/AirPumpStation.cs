@@ -34,6 +34,9 @@ public class AirPumpStation : MonoBehaviour, IInteractable
     /// <summary>Current oxygen flow rate (momentum * maxPumpRate). Read by PlayerController.</summary>
     public float CurrentFlowRate => _pumpMomentum * maxPumpRate;
 
+    /// <summary>Pump momentum 0–1. 0 = no flow, 1 = full flow.</summary>
+    public float PumpMomentum => _pumpMomentum;
+
     // ── IInteractable ─────────────────────────────────────────────────────────
 
     public string GetPromptText(PlayerController viewer) => _operator == null ? $"[E] Use {stationName}" : "In use";

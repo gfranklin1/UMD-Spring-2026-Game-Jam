@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 146065587565747490}
   - component: {fileID: 5775648620307615002}
   - component: {fileID: 9058304598808553555}
+  - component: {fileID: 1908692129570464634}
   m_Layer: 0
   m_Name: DiverWinch
   m_TagString: Untagged
@@ -28,7 +29,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -5, y: 5.5, z: -3.5}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.6818, y: 0.6818, z: 0.6818}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2278977364189473153}
@@ -54,8 +55,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 2.400953, y: 2.3163896, z: 2.6041358}
-  m_Center: {x: -0.009581208, y: 0.9687998, z: -0.0022906065}
+  m_Size: {x: 2.400953, y: 3.0297074, z: 2.6041358}
+  m_Center: {x: -0.009581242, y: 1.3254585, z: -0.002290644}
 --- !u!114 &9058304598808553555
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -73,6 +74,22 @@ MonoBehaviour:
   winchLowerSpeed: 2
   winchAcceleration: 6
   _ropePort: {fileID: 2278977364189473153}
+--- !u!114 &1908692129570464634
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3015077379825684647}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33190ee107e606f40ad252fc4f52592d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WinchBillboard
+  _font: {fileID: 12800000, guid: a01d6669ee4858d4791371414105e99c, type: 3}
+  _heightOffset: 2.5
+  _fontSize: 28
+  _textColor: {r: 1, g: 1, b: 1, a: 1}
 --- !u!1 &5676001024041836996
 GameObject:
   m_ObjectHideFlags: 0
@@ -98,7 +115,7 @@ Transform:
   m_GameObject: {fileID: 5676001024041836996}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.5, y: -0.5, z: 0}
+  m_LocalPosition: {x: -0.308, y: 1.406, z: 0.363}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

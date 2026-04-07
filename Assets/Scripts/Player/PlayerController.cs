@@ -114,6 +114,14 @@ public class PlayerController : NetworkBehaviour
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Owner);
 
+    // Synced so all clients can read the diver's O₂ and pump flow for station billboards
+    private readonly NetworkVariable<float> _networkOxygen = new NetworkVariable<float>(0f,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Owner);
+    private readonly NetworkVariable<float> _networkPumpFlowRate = new NetworkVariable<float>(0f,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Owner);
+
     // Synced so all clients know who is dead (spectating)
     public NetworkVariable<bool> NetworkIsDead = new NetworkVariable<bool>(false,
         NetworkVariableReadPermission.Everyone,
@@ -698,7 +706,7 @@ public class PlayerController : NetworkBehaviour
         }
 
         _cc.Move((horizontal + Vector3.up * _verticalVelocity) * Time.deltaTime);
-        _cableSystem?.ClampToTetherLength();
+        _cableSystem?.ClampToTetherLength(applyShipDrag: true);
     }
 
     private void HandleSuitedUnderwaterMovement()
@@ -732,7 +740,7 @@ public class PlayerController : NetworkBehaviour
         }
 
         _cc.Move((move * bootWalkSpeed + Vector3.up * _verticalVelocity) * Time.deltaTime);
-        _cableSystem?.ClampToTetherLength();
+        _cableSystem?.ClampToTetherLength(applyShipDrag: true);
 
         // Boot kick-off: hold G for bootKickHoldTime seconds
         if (_removeBootsAction != null && _removeBootsAction.IsPressed())
@@ -1094,6 +1102,8 @@ public class PlayerController : NetworkBehaviour
             else
                 _oxygen = Mathf.Min(_oxygen + Time.deltaTime, maxBreathSeconds);
         }
+
+        if (IsOwner) _networkOxygen.Value = _oxygen;
     }
 
     private void UpdateHealth()
@@ -1108,7 +1118,7 @@ public class PlayerController : NetworkBehaviour
             _hasDied = true;
 
             // Return suit and clear ropes before entering spectator mode
-            if (_state == PlayerState.WearingSuit)
+            if (IsWearingSuit || _suitRack != null)
                 HandleDeathSuitReturn();
 
             EnterSpectatorMode();
@@ -1130,6 +1140,7 @@ public class PlayerController : NetworkBehaviour
     {
         Debug.Log($"[Player] SetPumpFlowRate={rate:F2} (IsOwner={IsOwner})");
         _pumpFlowRate = rate;
+        if (IsOwner) _networkPumpFlowRate.Value = rate;
     }
 
     // HUD read-only accessors
@@ -1145,10 +1156,20 @@ public class PlayerController : NetworkBehaviour
     }
     public float Health        => _health;
     public float MaxHealth     => maxHealth;
-    public float Oxygen        => _oxygen;
-    public float OxygenCapacity => (_state == PlayerState.WearingSuit
-                                 || _preDiveState == PlayerState.WearingSuit)
-                                 ? maxSuitBuffer : maxBreathSeconds;
+    public float Oxygen        => IsOwner ? _oxygen : _networkOxygen.Value;
+    public float PumpFlowRate  => IsOwner ? _pumpFlowRate : _networkPumpFlowRate.Value;
+    public float OxygenCapacity
+    {
+        get
+        {
+            bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+            bool wearingSuit = networked
+                ? _networkWearingSuit.Value
+                : (_state == PlayerState.WearingSuit || _preDiveState == PlayerState.WearingSuit);
+
+            return wearingSuit ? maxSuitBuffer : maxBreathSeconds;
+        }
+    }
     public LootPickup NearestLoot => _nearestLoot;
     public bool  HasBoots         => _hasBoots;
 

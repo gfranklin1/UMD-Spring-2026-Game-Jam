@@ -73,8 +73,8 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   quotaTargets: 64000000fa000000f401000020030000
   quotaIncrement: 400
-  dayDurationSeconds: 120
-  daysPerCycle: 3
+  dayDurationSeconds: 150
+  daysPerCycle: 4
   SeabedSeed:
     UpdateTraits:
       MinSecondsBetweenUpdates: 0
