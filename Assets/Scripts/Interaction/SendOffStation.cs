@@ -1,46 +1,35 @@
+using System.Collections;
 using UnityEngine;
 
 public class SendOffStation : MonoBehaviour, IInteractable
 {
-    public string GetPromptText(PlayerController viewer)
-    {
-        return "[Hold E 2s] to Send Off Merchant";
-    }
+    [SerializeField] private float holdTime = 2f;
 
-    public float HoldDurationFor(PlayerController viewer)
-    {
-        return 2;
-    }
+    private Coroutine _holdRoutine;
 
-    public void OnInteractCancel(PlayerController player)
-    {
-        throw new System.NotImplementedException();
-    }
-
-    public void OnInteractHold(PlayerController player)
-    {
-        throw new System.NotImplementedException();
-    }
+    public string GetPromptText(PlayerController viewer) => "[Hold E] Send Off Merchant";
+    public float  HoldDurationFor(PlayerController viewer) => holdTime;
 
     public void OnInteractStart(PlayerController player)
     {
-        MerchantManager.Instance().SendOff();
+        if (_holdRoutine == null)
+            _holdRoutine = StartCoroutine(HoldRoutine());
     }
 
-    public void Release(PlayerController player)
+    public void OnInteractCancel(PlayerController player) => CancelHold();
+    public void OnInteractHold(PlayerController player)   { }
+    public void Release(PlayerController player)          => CancelHold();
+
+    private void CancelHold()
     {
-        throw new System.NotImplementedException();
+        if (_holdRoutine != null) { StopCoroutine(_holdRoutine); _holdRoutine = null; }
     }
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    private IEnumerator HoldRoutine()
     {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
+        yield return new WaitForSeconds(holdTime);
+        _holdRoutine = null;
+        var merchant = MerchantManager.Instance();
+        if (merchant != null) merchant.SendOffServerRpc();
     }
 }

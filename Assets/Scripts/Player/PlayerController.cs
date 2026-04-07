@@ -638,7 +638,7 @@ public class PlayerController : NetworkBehaviour
         bool wasGrounded = _cc.isGrounded;
         bool jumpPressedThisFrame = _cc.isGrounded && _jumpAction != null && _jumpAction.WasPressedThisFrame();
 
-        if(moveInput.magnitude > 0 && !walkSound.isPlaying)
+        if (moveInput.magnitude > 0f && walkSound != null && walkSound.clip != null && !walkSound.isPlaying)
         {
             walkSound.Play();
         }
@@ -682,7 +682,7 @@ public class PlayerController : NetworkBehaviour
         if (_moveAction == null) return;
         var moveInput = _moveAction.ReadValue<Vector2>();
 
-        if(moveInput.magnitude > 0 && !swimSound.isPlaying)
+        if (moveInput.magnitude > 0f && swimSound != null && swimSound.clip != null && !swimSound.isPlaying)
         {
             swimSound.Play();
         }
@@ -1002,7 +1002,7 @@ public class PlayerController : NetworkBehaviour
         }
         else { _holdStartTime = -1f; }
 
-        if(_nearestInteractable != null)
+        if (_nearestInteractable != null && interactSound != null && interactSound.clip != null)
         {
             interactSound.Play();
         }
@@ -1052,7 +1052,7 @@ public class PlayerController : NetworkBehaviour
         }
         _currentStation?.Release(this);
         _currentStation = null;
-        _state = PlayerState.OnDeck;
+        _state = _suitRack != null ? PlayerState.WearingSuit : PlayerState.OnDeck;
     }
 
     public void EquipSuit(DivingSuitRack rack, bool hasBoots = true)
@@ -1103,7 +1103,8 @@ public class PlayerController : NetworkBehaviour
         float headY          = transform.position.y + _cc.height * 0.5f;
         bool  headUnderwater = _state == PlayerState.Underwater && headY < _currentWaveHeight;
         bool  suitOn         = _state == PlayerState.WearingSuit
-                            || (_state == PlayerState.Underwater && _preDiveState == PlayerState.WearingSuit);
+                            || (_state == PlayerState.Underwater && _preDiveState == PlayerState.WearingSuit)
+                            || (_state == PlayerState.AtStation  && _suitRack != null);
 
         if (suitOn)
         {
@@ -1190,9 +1191,15 @@ public class PlayerController : NetworkBehaviour
         get
         {
             bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
-            bool wearingSuit = networked
+            // Non-owners read the networked variable (for billboards/HUD on other clients).
+            // Owners always use local state — _networkWearingSuit stays true while AtStation
+            // (LockToStation doesn't clear it), which would show 50% when oxygen caps at
+            // maxBreathSeconds but capacity still reads maxSuitBuffer.
+            bool wearingSuit = (networked && !IsOwner)
                 ? _networkWearingSuit.Value
-                : (_state == PlayerState.WearingSuit || _preDiveState == PlayerState.WearingSuit);
+                : (_state == PlayerState.WearingSuit
+                || _preDiveState == PlayerState.WearingSuit
+                || (_state == PlayerState.AtStation && _suitRack != null));
 
             return wearingSuit ? maxSuitBuffer : maxBreathSeconds;
         }

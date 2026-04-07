@@ -17,7 +17,8 @@ public abstract class Upgrade : MonoBehaviour
             return;
         }
         cantBuyLabel.SetActive(false);
-        GoldTracker.Instance.AddGoldDirect(-Cost());
+        // Use RPC so the server-authoritative gold total is deducted correctly in multiplayer
+        GoldTracker.Instance.AddGoldServerRpc(-Cost());
         ApplyUpgrade();
     }
     public abstract void ApplyUpgrade();

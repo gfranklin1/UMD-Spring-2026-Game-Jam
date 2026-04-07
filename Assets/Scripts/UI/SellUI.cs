@@ -11,16 +11,14 @@ public class SellUI : MonoBehaviour
     {
         _panel.SetActive(false);
 
-        // Only wire up on the local player's HUD — non-owner instances are disabled by PlayerHUD
+        if (_player == null) { enabled = false; return; }
+
+        // Only wire up on the local player's HUD â€” non-owner instances are disabled by PlayerHUD
         bool networked = Unity.Netcode.NetworkManager.Singleton != null
                       && Unity.Netcode.NetworkManager.Singleton.IsListening;
-        if (networked && _player != null && !_player.IsOwner)
-        {
-            enabled = false;
-            return;
-        }
+        if (networked && !_player.IsOwner) { enabled = false; return; }
 
-        _player.OnOpenSellScreen += OnOpen;
+        _player.OnOpenSellScreen  += OnOpen;
         _player.OnCloseSellScreen += OnClose;
     }
 

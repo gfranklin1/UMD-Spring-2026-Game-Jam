@@ -64,7 +64,8 @@ public class QuotaManager : NetworkBehaviour
     private void Awake()
     {
         if (Instance == null) Instance = this;
-        MerchantManager.Instance().OnMerchantShipLeave += ResumeCycle;
+        var merchant = MerchantManager.Instance();
+        if (merchant != null) merchant.OnMerchantShipLeave += ResumeCycle;
     }
 
     public override void OnNetworkSpawn()
@@ -112,7 +113,7 @@ public class QuotaManager : NetworkBehaviour
 
     public void ResumeCycle()
     {
-        _merchantOperating = true;
+        _merchantOperating = false;
     }
 
     private void EndOfCycleCheck()
