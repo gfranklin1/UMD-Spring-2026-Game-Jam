@@ -213,6 +213,9 @@ public class PlayerController : NetworkBehaviour
         // NetworkTransform when it repositions the remote player each tick.
         if (_cc != null) _cc.enabled = false;
 
+        // Ensure remote player body is visible (owner hides their own, non-owners must be visible)
+        foreach (var r in _bodyRenderers) r.enabled = true;
+
         // Track remote players' dead state to hide their bodies
         NetworkIsDead.OnValueChanged += OnNetworkIsDeadChanged;
         if (NetworkIsDead.Value) ApplyDeadVisuals();

@@ -618,9 +618,6 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 1756576705279386870, guid: 1c8c4f0046edd034496801cd6d261ac8, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 355695837}
-    - targetCorrespondingSourceObject: {fileID: 1756576705279386870, guid: 1c8c4f0046edd034496801cd6d261ac8, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 355695836}
   m_SourcePrefab: {fileID: 100100000, guid: 1c8c4f0046edd034496801cd6d261ac8, type: 3}
 --- !u!4 &355695834 stripped
@@ -660,25 +657,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
---- !u!114 &355695837
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 355695835}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1a97b3612f91dee47bb8c38f04c30542, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ShipMovement
-  ShowTopMostFoldoutHeaderGroup: 1
-  minWindSpeed: 3
-  maxWindSpeed: 8
-  windChangeSpeed: 0.15
-  maxTurnSpeed: 30
-  waterDrag: 0.3
-  anchorDrag: 8
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
