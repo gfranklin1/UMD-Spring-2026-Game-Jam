@@ -126,4 +126,26 @@ public class ShipMovement : NetworkBehaviour
         _helmOccupied.Value = occupied;
         if (!occupied) _steeringInput = 0f;
     }
+
+    /// <summary>
+    /// Authority-safe setter for server/host code paths.
+    /// In networked sessions, only server is allowed to write movement state.
+    /// </summary>
+    public void SetSteeringInputAuthority(float steering)
+    {
+        bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+        if (networked && !IsServer) return;
+        _steeringInput = Mathf.Clamp(steering, -1f, 1f);
+    }
+
+    /// <summary>
+    /// Authority-safe helm occupancy setter for server/host code paths.
+    /// </summary>
+    public void SetHelmOccupiedAuthority(bool occupied)
+    {
+        bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+        if (networked && !IsServer) return;
+        _helmOccupied.Value = occupied;
+        if (!occupied) _steeringInput = 0f;
+    }
 }

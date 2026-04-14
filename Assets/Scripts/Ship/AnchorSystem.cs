@@ -15,6 +15,8 @@ public class AnchorSystem : NetworkBehaviour, IInteractable
     [SerializeField] private Transform anchorAttachPoint;
     [SerializeField] private GameObject anchorVisualPrefab;
     [SerializeField] private LineRenderer anchorRope;
+    [Tooltip("Optional object to hide while the anchor is lowered or moving, and show again when fully stowed.")]
+    [SerializeField] private GameObject hideWhenLowered;
 
     [Header("Speeds")]
     [SerializeField] private float deploySpeed  = 15f;
@@ -89,11 +91,14 @@ public class AnchorSystem : NetworkBehaviour, IInteractable
     private void Start()
     {
         if (anchorRope != null) anchorRope.enabled = false;
+        UpdateLoweredVisibility(CurrentState);
     }
 
     public override void OnNetworkSpawn()
     {
         _netState.OnValueChanged += OnStateChanged;
+
+        UpdateLoweredVisibility(_netState.Value);
 
         // Late-join: sync visual state
         if (_netState.Value != AnchorState.Stowed)
@@ -107,6 +112,8 @@ public class AnchorSystem : NetworkBehaviour, IInteractable
 
     private void OnStateChanged(AnchorState oldState, AnchorState newState)
     {
+        UpdateLoweredVisibility(newState);
+
         if (newState == AnchorState.Stowed)
             DestroyAnchorVisual();
         else if (oldState == AnchorState.Stowed)
@@ -117,6 +124,9 @@ public class AnchorSystem : NetworkBehaviour, IInteractable
     {
         bool authority = IsNetworked ? IsServer : true;
         var state = CurrentState;
+
+        if (!IsNetworked)
+            UpdateLoweredVisibility(state);
 
         if (authority)
         {
@@ -239,5 +249,13 @@ public class AnchorSystem : NetworkBehaviour, IInteractable
 
             anchorRope.SetPosition(i, point);
         }
+    }
+
+    private void UpdateLoweredVisibility(AnchorState state)
+    {
+        if (hideWhenLowered == null) return;
+
+        bool isStowed = state == AnchorState.Stowed;
+        hideWhenLowered.SetActive(isStowed);
     }
 }

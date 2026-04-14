@@ -43,6 +43,9 @@ public class PlayerController : NetworkBehaviour
     private Renderer[] _bodyRenderers = System.Array.Empty<Renderer>();
     [SerializeField] private PlayerInput playerInput;
     [SerializeField] private LootRegistry _lootRegistry;
+    [SerializeField] private AudioSource interactSound;
+    [SerializeField] private AudioSource walkSound;
+    [SerializeField] private AudioSource swimSound;
 
     private CharacterController _cc;
     private DiveCableSystem _cableSystem;
@@ -60,6 +63,12 @@ public class PlayerController : NetworkBehaviour
     private InputAction _dropAction;
     private InputAction _removeBootsAction;
     private InputAction _scrollInventoryAction;
+    private InputAction _tugAction;
+    private float _lastTugTime;
+    private float _lastTugReceivedTime = -10f;
+    private int   _tugReceivedCount;
+    private const float TugCooldown = 0.4f;
+    private const float TugCountWindow = 2f;
     private bool  _hasBoots      = false;
     private float _bootKickTimer = 0f;
     private IInteractable _nearestInteractable;
@@ -69,7 +78,7 @@ public class PlayerController : NetworkBehaviour
     private LootPickup _nearestLoot;
     private StorageChest _openChest;
     private bool  _hasDied = false;
-    private Vector3 _spawnPosition;
+    private int _spawnPointIndex = -1;
     private bool _quotaResetSubscribed = false;
     private const float InteractRange = 2.5f;
 
@@ -93,18 +102,32 @@ public class PlayerController : NetworkBehaviour
         NetworkVariableWritePermission.Owner);
 
     public StorageChest CurrentOpenChest => _openChest;
+    public bool OpenUI = false;
     public event System.Action<StorageChest> OnChestOpened;
     public event System.Action               OnChestClosed;
+    public event System.Action               OnOpenBuyScreen;
+    public event System.Action               OnCloseBuyScreen;
+    public event System.Action               OnOpenSellScreen;
+    public event System.Action               OnCloseSellScreen;
     private float _health;
     private float _oxygen;
     private float _currentSpeed;
     private float _pumpFlowRate;   // oxygen/s currently delivered by the pump (0 when not pumping)
     private float _lastSentPumpFlow;
+    private AirPumpStation _recentPumpStation;
     private float _winchPullSpeed;   // m/s upward pull from winch operator (0 when idle)
     private float _lastSentWinchPull;
 
     // Synced so the server can find the suited player when routing pump RPCs
     private NetworkVariable<bool> _networkWearingSuit = new NetworkVariable<bool>(false,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Owner);
+
+    // Synced so all clients can read the diver's O₂ and pump flow for station billboards
+    private readonly NetworkVariable<float> _networkOxygen = new NetworkVariable<float>(0f,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Owner);
+    private readonly NetworkVariable<float> _networkPumpFlowRate = new NetworkVariable<float>(0f,
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Owner);
 
@@ -154,6 +177,7 @@ public class PlayerController : NetworkBehaviour
                 _dropAction        = playerInput.actions["Drop"];
                 _removeBootsAction     = playerInput.actions["RemoveBoots"];
                 _scrollInventoryAction = playerInput.actions["ScrollInventory"];
+                _tugAction             = playerInput.actions["Tug"];
                 _interactAction.started   += OnInteractStarted;
                 _interactAction.performed += OnInteractHeld;
                 _interactAction.canceled  += OnInteractCanceled;
@@ -162,7 +186,6 @@ public class PlayerController : NetworkBehaviour
             _health = maxHealth;
             _oxygen = maxBreathSeconds;
             _currentSpeed = walkSpeed;
-            _spawnPosition = transform.position;
             enabled = true;
 
             string localName = NetworkLauncher.PlayerName;
@@ -190,6 +213,9 @@ public class PlayerController : NetworkBehaviour
         // NetworkTransform when it repositions the remote player each tick.
         if (_cc != null) _cc.enabled = false;
 
+        // Ensure remote player body is visible (owner hides their own, non-owners must be visible)
+        foreach (var r in _bodyRenderers) r.enabled = true;
+
         // Track remote players' dead state to hide their bodies
         NetworkIsDead.OnValueChanged += OnNetworkIsDeadChanged;
         if (NetworkIsDead.Value) ApplyDeadVisuals();
@@ -202,17 +228,28 @@ public class PlayerController : NetworkBehaviour
     private void OnNetworkIsDeadChanged(bool _, bool isDead) { if (isDead) ApplyDeadVisuals(); else UndoDeadVisuals(); }
 
     /// <summary>
-    /// Server → owning client: teleport to an assigned deck spawn point and
-    /// update _spawnPosition so quota-reset respawns land here too.
+    /// Server → owning client: teleport to an assigned deck spawn point.
+    /// Stores the index so respawns always use the spawn point's current world position
+    /// (the ship moves, so a cached Vector3 would go stale).
     /// </summary>
     [ClientRpc]
-    public void AssignSpawnPointClientRpc(Vector3 position, ClientRpcParams _ = default)
+    public void AssignSpawnPointClientRpc(int spawnIndex, ClientRpcParams _ = default)
     {
         if (!IsOwner) return;
-        _spawnPosition = position;
-        _verticalVelocity = 0f;          // prevent gravity from pulling player down on the first frame
+        _spawnPointIndex = spawnIndex;
+        TeleportToSpawnPoint();
+    }
+
+    private void TeleportToSpawnPoint()
+    {
+        if (_spawnPointIndex < 0) return;
+        var mgr = PlayerSpawnManager.Instance;
+        if (mgr == null) return;
+        Vector3 pos = mgr.GetSpawnPosition(_spawnPointIndex);
+        _verticalVelocity = 0f;
         _cc.enabled = false;
-        transform.position = position + Vector3.up * 0.5f;  // slight offset to clear ship deck after buoyancy shifts
+        // +2 m clears the deck even if the ship is mid-bounce; gravity lands the player naturally
+        transform.position = pos + Vector3.up * 2f;
         _cc.enabled = true;
     }
     private void ApplyDeadVisuals() { foreach (var r in _bodyRenderers) r.enabled = false; if (_cc) _cc.enabled = false; }
@@ -240,6 +277,7 @@ public class PlayerController : NetworkBehaviour
         _hasDied = false;
         _health  = maxHealth;
         _oxygen  = maxBreathSeconds;
+        _preDiveState = PlayerState.OnDeck;
 
         // Close chest UI if open
         if (_openChest != null) CloseChest();
@@ -247,10 +285,8 @@ public class PlayerController : NetworkBehaviour
         // Wipe inventory — full restart means fresh start for everyone
         _inventory?.Clear();
 
-        // Teleport back to spawn — must go through CharacterController
-        _cc.enabled = false;
-        transform.position = _spawnPosition;
-        _cc.enabled = true;
+        // Teleport back to spawn — reads the spawn point's current world position
+        TeleportToSpawnPoint();
 
         // Reset suit state unconditionally (RPC may arrive late or out of order)
         _holdStartTime = -1f;
@@ -286,10 +322,9 @@ public class PlayerController : NetworkBehaviour
         _hasDied = false;
         _health  = maxHealth;
         _oxygen  = maxBreathSeconds;
+        _preDiveState = PlayerState.OnDeck;
 
-        _cc.enabled = false;
-        transform.position = _spawnPosition;
-        _cc.enabled = true;
+        TeleportToSpawnPoint();
 
         _holdStartTime = -1f;
         _hasBoots      = false;
@@ -327,6 +362,10 @@ public class PlayerController : NetworkBehaviour
             QuotaManager.Instance.OnCycleAdvanced += OnCycleAdvancedRevive;
         }
 
+        // Rope tug input (diver in suit or winch operator)
+        CheckTugInput();
+        RelayPumpDecayFlow();
+
         // Game over — freeze everything
         if (QuotaManager.Instance != null && QuotaManager.Instance.IsGameOver) return;
 
@@ -340,11 +379,15 @@ public class PlayerController : NetworkBehaviour
         ApplyPlatformDelta();
 
         // Chest UI open — freeze all movement/interaction; only check for close keys
-        if (_openChest != null)
+        if (OpenUI)
         {
             var kb = UnityEngine.InputSystem.Keyboard.current;
             if (kb != null && kb.escapeKey.wasPressedThisFrame)
-                CloseChest();
+            {
+                if (_openChest != null) { CloseChest(); }
+                CloseBuyUI();
+                CloseSellUI();
+            }
             return;
         }
 
@@ -402,7 +445,16 @@ public class PlayerController : NetworkBehaviour
             if (networked)
             {
                 var item = _inventory?.Slots[_inventory.SelectedIndex];
-                if (item != null) DropItemServerRpc(item.name, dropPos);
+                if (item != null)
+                {
+                    ulong shipNetId = 0;
+                    if (_platformTransform != null)
+                    {
+                        var shipNetObj = _platformTransform.GetComponent<NetworkObject>();
+                        if (shipNetObj != null) shipNetId = shipNetObj.NetworkObjectId;
+                    }
+                    DropItemServerRpc(item.name, dropPos, shipNetId);
+                }
             }
             else
             {
@@ -593,6 +645,11 @@ public class PlayerController : NetworkBehaviour
         bool wasGrounded = _cc.isGrounded;
         bool jumpPressedThisFrame = _cc.isGrounded && _jumpAction != null && _jumpAction.WasPressedThisFrame();
 
+        if (moveInput.magnitude > 0f && walkSound != null && walkSound.clip != null && !walkSound.isPlaying)
+        {
+            walkSound.Play();
+        }
+
         if (_cc.isGrounded && _verticalVelocity < 0f)
             _verticalVelocity = -2f;
 
@@ -631,6 +688,11 @@ public class PlayerController : NetworkBehaviour
     {
         if (_moveAction == null) return;
         var moveInput = _moveAction.ReadValue<Vector2>();
+
+        if (moveInput.magnitude > 0f && swimSound != null && swimSound.clip != null && !swimSound.isPlaying)
+        {
+            swimSound.Play();
+        }
 
         Transform cam = cameraRoot != null ? cameraRoot : transform;
         Vector3 forward    = Vector3.ProjectOnPlane(cam.forward, Vector3.up).normalized;
@@ -737,16 +799,25 @@ public class PlayerController : NetworkBehaviour
             _nearestInteractable = null;
             return;
         }
-        Collider[] hits = Physics.OverlapSphere(transform.position, InteractRange);
+
+        // SphereCast along camera look direction — interact with what you aim at.
+        // Use SphereCastAll and skip self-hits so the player's own collider doesn't block the cast.
+        const float CastRadius = 0.3f;
+        Ray ray = new Ray(cameraRoot.position, cameraRoot.forward);
         IInteractable nearest = null;
         float nearestDist = float.MaxValue;
-        foreach (var hit in hits)
+
+        foreach (var hit in Physics.SphereCastAll(ray, CastRadius, InteractRange))
         {
-            var interactable = hit.GetComponentInParent<IInteractable>();
-            if (interactable == null) continue;
-            float dist = (hit.transform.position - transform.position).sqrMagnitude;
-            if (dist < nearestDist) { nearestDist = dist; nearest = interactable; }
+            if (hit.collider.transform.IsChildOf(transform)) continue;
+            var interactable = hit.collider.GetComponentInParent<IInteractable>();
+            if (interactable != null && hit.distance < nearestDist)
+            {
+                nearest = interactable;
+                nearestDist = hit.distance;
+            }
         }
+
         if (nearest != _nearestInteractable)
         {
             _nearestInteractable = nearest;
@@ -795,6 +866,7 @@ public class PlayerController : NetworkBehaviour
 
         if (_currentStation is AirPumpStation pump)
         {
+            _recentPumpStation = pump;
             if (_jumpAction != null && _jumpAction.WasPressedThisFrame())
                 pump.OnCrank();
 
@@ -906,6 +978,7 @@ public class PlayerController : NetworkBehaviour
     {
         // Close chest UI on second E press
         if (_openChest != null) { CloseChest(); return; }
+        if(OpenUI) { CloseSellUI(); CloseBuyUI(); return; }
 
         // Loot pickup — quick tap E (works in any non-station state)
         if (_nearestLoot != null && _inventory != null && !_inventory.IsFull)
@@ -937,6 +1010,10 @@ public class PlayerController : NetworkBehaviour
         }
         else { _holdStartTime = -1f; }
 
+        if (_nearestInteractable != null && interactSound != null && interactSound.clip != null)
+        {
+            interactSound.Play();
+        }
         _nearestInteractable?.OnInteractStart(this);
     }
 
@@ -967,11 +1044,7 @@ public class PlayerController : NetworkBehaviour
         if (_currentStation is AirPumpStation pump)
         {
             pump.OnOperatorLeft(this);
-            // Tell server to zero the diver's flow rate
-            _lastSentPumpFlow = 0f;
-            bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
-            if (networked) SendPumpFlowServerRpc(0f);
-            else           ApplyPumpFlowLocal(0f);
+            _recentPumpStation = pump;
         }
         if (_currentStation is WinchStation winchStation)
         {
@@ -983,7 +1056,31 @@ public class PlayerController : NetworkBehaviour
         }
         _currentStation?.Release(this);
         _currentStation = null;
-        _state = PlayerState.OnDeck;
+        _state = _suitRack != null ? PlayerState.WearingSuit : PlayerState.OnDeck;
+    }
+
+    private void RelayPumpDecayFlow()
+    {
+        if (_recentPumpStation == null) return;
+
+        // While actively operating the pump, HandleAtStationState already relays flow.
+        if (_state == PlayerState.AtStation && _currentStation is AirPumpStation)
+            return;
+
+        float flow = _recentPumpStation.CurrentFlowRate;
+        if (flow < 0.001f)
+        {
+            flow = 0f;
+            _recentPumpStation = null;
+        }
+
+        if (Mathf.Abs(flow - _lastSentPumpFlow) > 0.05f)
+        {
+            _lastSentPumpFlow = flow;
+            bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+            if (networked) SendPumpFlowServerRpc(flow);
+            else           ApplyPumpFlowLocal(flow);
+        }
     }
 
     public void EquipSuit(DivingSuitRack rack, bool hasBoots = true)
@@ -1011,6 +1108,7 @@ public class PlayerController : NetworkBehaviour
         _suitRack?.ReturnSuit(_hasBoots);
         _suitRack = null;
         _state = PlayerState.OnDeck;
+        _preDiveState = PlayerState.OnDeck;
         _oxygen = maxBreathSeconds;   // back to normal breath above water
         if (IsOwner) _networkWearingSuit.Value = false;
         _cableSystem?.ClearAnchor();
@@ -1034,7 +1132,8 @@ public class PlayerController : NetworkBehaviour
         float headY          = transform.position.y + _cc.height * 0.5f;
         bool  headUnderwater = _state == PlayerState.Underwater && headY < _currentWaveHeight;
         bool  suitOn         = _state == PlayerState.WearingSuit
-                            || (_state == PlayerState.Underwater && _preDiveState == PlayerState.WearingSuit);
+                            || (_state == PlayerState.Underwater && _preDiveState == PlayerState.WearingSuit)
+                            || (_state == PlayerState.AtStation  && _suitRack != null);
 
         if (suitOn)
         {
@@ -1060,6 +1159,8 @@ public class PlayerController : NetworkBehaviour
             else
                 _oxygen = Mathf.Min(_oxygen + Time.deltaTime, maxBreathSeconds);
         }
+
+        if (IsOwner) _networkOxygen.Value = _oxygen;
     }
 
     private void UpdateHealth()
@@ -1072,6 +1173,11 @@ public class PlayerController : NetworkBehaviour
         if (_health <= 0f && !_hasDied)
         {
             _hasDied = true;
+
+            // Return suit and clear ropes before entering spectator mode
+            if (IsWearingSuit || _suitRack != null)
+                HandleDeathSuitReturn();
+
             EnterSpectatorMode();
             bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
             if (!networked || IsServer)
@@ -1091,6 +1197,7 @@ public class PlayerController : NetworkBehaviour
     {
         Debug.Log($"[Player] SetPumpFlowRate={rate:F2} (IsOwner={IsOwner})");
         _pumpFlowRate = rate;
+        if (IsOwner) _networkPumpFlowRate.Value = rate;
     }
 
     // HUD read-only accessors
@@ -1106,15 +1213,34 @@ public class PlayerController : NetworkBehaviour
     }
     public float Health        => _health;
     public float MaxHealth     => maxHealth;
-    public float Oxygen        => _oxygen;
-    public float OxygenCapacity => (_state == PlayerState.WearingSuit
-                                 || _preDiveState == PlayerState.WearingSuit)
-                                 ? maxSuitBuffer : maxBreathSeconds;
+    public float Oxygen        => IsOwner ? _oxygen : _networkOxygen.Value;
+    public float PumpFlowRate  => IsOwner ? _pumpFlowRate : _networkPumpFlowRate.Value;
+    public float OxygenCapacity
+    {
+        get
+        {
+            bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+            // Non-owners read the networked variable (for billboards/HUD on other clients).
+            // Owners always use local state — _networkWearingSuit stays true while AtStation
+            // (LockToStation doesn't clear it), which would show 50% when oxygen caps at
+            // maxBreathSeconds but capacity still reads maxSuitBuffer.
+            bool wearingSuit = (networked && !IsOwner)
+                ? _networkWearingSuit.Value
+                : (_state == PlayerState.WearingSuit
+                || (_state == PlayerState.Underwater && _preDiveState == PlayerState.WearingSuit)
+                || (_state == PlayerState.AtStation && _suitRack != null));
+
+            return wearingSuit ? maxSuitBuffer : maxBreathSeconds;
+        }
+    }
     public LootPickup NearestLoot => _nearestLoot;
     public bool  HasBoots         => _hasBoots;
 
     public void OpenChest(StorageChest chest)
     {
+        OpenUI = true;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
         _openChest = chest;
         _nearestInteractable = null;  // hide interaction prompt while chest UI is open
         OnChestOpened?.Invoke(chest);
@@ -1122,14 +1248,53 @@ public class PlayerController : NetworkBehaviour
 
     public void CloseChest()
     {
+        OpenUI = false;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
         _openChest = null;
         OnChestClosed?.Invoke();
     }
+
+    public void OpenBuyUI()
+    {
+        OpenUI = true;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+        OnOpenBuyScreen?.Invoke();
+    }
+
+    public void CloseBuyUI()
+    {
+        OpenUI = false;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+        OnCloseBuyScreen?.Invoke();
+    }
+
+    public void OpenSellUI()
+    {
+        OpenUI = true;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+        OnOpenSellScreen?.Invoke();
+    }
+
+    public void CloseSellUI()
+    {
+        OpenUI = false;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+        OnCloseSellScreen?.Invoke();
+    }
+
     public bool  IsUnderwater     => _state == PlayerState.Underwater;
     public bool  IsHeadUnderwater
     {
         get
         {
+            if (_cc == null) _cc = GetComponent<CharacterController>();
+            if (_cc == null) return false;
+
             float headY = transform.position.y + _cc.height * 0.5f;
             return _state == PlayerState.Underwater && headY < _currentWaveHeight;
         }
@@ -1179,6 +1344,35 @@ public class PlayerController : NetworkBehaviour
         }
     }
 
+    // ── Upgrade RPCs — broadcast upgrade effects to all clients ─────────────
+
+    [ServerRpc(RequireOwnership = false)]
+    public void UpgradePumpServerRpc() => UpgradePumpClientRpc();
+
+    [ClientRpc]
+    private void UpgradePumpClientRpc()
+        => FindFirstObjectByType<AirPumpStation>()?.Upgrade();
+
+    [ServerRpc(RequireOwnership = false)]
+    public void UpgradeCableServerRpc() => UpgradeCableClientRpc();
+
+    [ClientRpc]
+    private void UpgradeCableClientRpc()
+    {
+        foreach (var c in FindObjectsByType<DiveCableSystem>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+            c.Upgrade();
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    public void UpgradeSuitServerRpc()
+        => FindFirstObjectByType<DivingSuitRack>()?.ServerRestoreBoots();
+
+    [ServerRpc(RequireOwnership = false)]
+    public void RequestMerchantSendOffServerRpc()
+    {
+        QuotaManager.Instance?.TriggerMerchantSendOff();
+    }
+
     // ── Winch RPCs ──────────────────────────────────────────────────────────
     // Operator calls SendWinchPullServerRpc on their OWN PlayerController.
     // Server finds the suited diver and forwards the pull speed via ClientRpc.
@@ -1213,6 +1407,94 @@ public class PlayerController : NetworkBehaviour
                 return;
             }
         }
+    }
+
+    // ── Rope Tug Communication ─────────────────────────────────────────────────
+
+    /// <summary>HUD reads these to show tug count indicator.</summary>
+    public bool TugIndicatorActive => Time.time - _lastTugReceivedTime < TugCountWindow;
+    public int  TugReceivedCount   => _tugReceivedCount;
+
+    private void CheckTugInput()
+    {
+        if (_tugAction == null || !_tugAction.WasPressedThisFrame()) return;
+        if (Time.time - _lastTugTime < TugCooldown) return;
+
+        bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+
+        // Diver tugs (wearing suit on deck, or underwater with suit)
+        bool wearingSuit = _state == PlayerState.WearingSuit
+                        || (_state == PlayerState.Underwater && _preDiveState == PlayerState.WearingSuit);
+        if (wearingSuit)
+        {
+            _lastTugTime = Time.time;
+            _cableSystem?.ApplyTugImpulse(false);
+            if (networked) TugRopeServerRpc();
+        }
+        // Winch operator tugs
+        else if (_state == PlayerState.AtStation && _currentStation is WinchStation)
+        {
+            _lastTugTime = Time.time;
+            if (networked) TugRopeFromWinchServerRpc();
+        }
+    }
+
+    private void IncrementTugCount()
+    {
+        if (Time.time - _lastTugReceivedTime > TugCountWindow)
+            _tugReceivedCount = 0;
+        _tugReceivedCount++;
+        _lastTugReceivedTime = Time.time;
+    }
+
+    [ServerRpc]
+    private void TugRopeServerRpc()
+    {
+        // Diver tugged -> notify everyone who is not the current diver.
+        // This lets all topside players see the tug indicator, not just the winch operator.
+        foreach (var pc in FindObjectsByType<PlayerController>(FindObjectsInactive.Exclude))
+        {
+            if (pc != this && !pc._networkWearingSuit.Value)
+                pc.ReceiveTugFromDiverClientRpc();
+        }
+    }
+
+    [ServerRpc]
+    private void TugRopeFromWinchServerRpc()
+    {
+        // Winch operator tugged -> find suited diver and notify them
+        foreach (var pc in FindObjectsByType<PlayerController>(FindObjectsInactive.Exclude))
+        {
+            if (pc._networkWearingSuit.Value)
+            {
+                pc.ReceiveTugFromWinchClientRpc();
+                return;
+            }
+        }
+    }
+
+    [ClientRpc]
+    private void ReceiveTugFromDiverClientRpc()
+    {
+        if (!IsOwner) return;
+        IncrementTugCount();
+        // Jerk the diver's rope visually on this client
+        foreach (var pc in FindObjectsByType<PlayerController>(FindObjectsInactive.Exclude))
+        {
+            if (pc.IsWearingSuit)
+            {
+                pc._cableSystem?.ApplyTugImpulse(false);
+                break;
+            }
+        }
+    }
+
+    [ClientRpc]
+    private void ReceiveTugFromWinchClientRpc()
+    {
+        if (!IsOwner) return;
+        IncrementTugCount();
+        _cableSystem?.ApplyTugImpulse(true);  // rope jerks toward station
     }
 
     // ── Suit Equip/Unequip RPCs ───────────────────────────────────────────────
@@ -1280,6 +1562,7 @@ public class PlayerController : NetworkBehaviour
         _winchPullSpeed = 0f;
         _suitRack = null;
         _state    = PlayerState.OnDeck;
+        _preDiveState = PlayerState.OnDeck;
         _oxygen   = maxBreathSeconds;
         if (IsOwner) _networkWearingSuit.Value = false;
         _cableSystem?.ClearAnchor();
@@ -1303,6 +1586,36 @@ public class PlayerController : NetworkBehaviour
         foreach (var pc in FindObjectsByType<PlayerController>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
             if (!pc.NetworkIsDead.Value) { anyAlive = true; break; }
         if (!anyAlive) QuotaManager.Instance?.TriggerGameOver(1);
+    }
+
+    /// <summary>
+    /// Called on the owner when the player dies while wearing a suit.
+    /// Clears ropes, returns the suit to the rack (via server RPC in multiplayer).
+    /// Must run BEFORE EnterSpectatorMode changes state to Dead.
+    /// </summary>
+    private void HandleDeathSuitReturn()
+    {
+        _cableSystem?.ClearAnchor();
+        SetPumpFlowRate(0f);
+        _winchPullSpeed = 0f;
+        if (IsOwner) _networkWearingSuit.Value = false;
+
+        bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+        if (networked && _suitRack != null)
+            ReturnSuitOnDeathServerRpc(_suitRack.NetworkObjectId);
+        else
+            _suitRack?.ReturnSuit(false);
+
+        _suitRack = null;
+    }
+
+    [ServerRpc]
+    private void ReturnSuitOnDeathServerRpc(ulong rackNetworkObjectId)
+    {
+        if (!NetworkManager.SpawnManager.SpawnedObjects
+                .TryGetValue(rackNetworkObjectId, out var rackObj)) return;
+        var rack = rackObj.GetComponent<DivingSuitRack>();
+        rack?.ServerReturnSuit(false);
     }
 
     [ServerRpc]
@@ -1338,6 +1651,10 @@ public class PlayerController : NetworkBehaviour
         if (loot == null) return;
         string itemId = loot.ItemId;
 
+        // Notify spawner so this point is marked as consumed and won't respawn
+        if (loot.SiteIndex >= 0 && LootSpawner.Instance != null)
+            LootSpawner.Instance.NotifyLootPickedUp(loot.SiteIndex, loot.PointIndex);
+
         // Use Despawn(false) for in-scene objects so late-joining clients
         // don't see ghost items. OnNetworkDespawn hides renderers/colliders.
         bool isSceneObject = netObj.IsSceneObject.HasValue && netObj.IsSceneObject.Value;
@@ -1358,12 +1675,38 @@ public class PlayerController : NetworkBehaviour
     }
 
     [ServerRpc]
-    private void DropItemServerRpc(string itemId, Vector3 dropPos, ServerRpcParams rpc = default)
+    private void DropItemServerRpc(string itemId, Vector3 dropPos, ulong shipNetId, ServerRpcParams rpc = default)
     {
         var item = _lootRegistry?.Find(itemId);
         if (item?.worldPrefab == null) return;
-        var go = Instantiate(item.worldPrefab, dropPos, Quaternion.identity);
-        go.GetComponent<NetworkObject>()?.Spawn(true);
+
+        // Place item on a surface: deck if on ship, seabed if in water
+        if (shipNetId != 0
+            && NetworkManager.SpawnManager.SpawnedObjects.TryGetValue(shipNetId, out var shipNetObj))
+        {
+            // On ship: raycast down to find deck surface
+            if (Physics.Raycast(dropPos, Vector3.down, out RaycastHit hit, 20f))
+                dropPos = hit.point + Vector3.up * 0.05f;
+
+            var go = Instantiate(item.worldPrefab, dropPos, Quaternion.identity);
+            var netObj = go.GetComponent<NetworkObject>();
+            if (netObj != null)
+            {
+                netObj.Spawn(true);
+                netObj.TrySetParent(shipNetObj);
+            }
+        }
+        else
+        {
+            // In water: place on the seabed floor
+            var seabed = SeabedManager.Instance;
+            if (seabed != null && seabed.IsGenerated)
+                dropPos.y = seabed.GetFloorY(dropPos.x, dropPos.z) + 0.05f;
+
+            var go = Instantiate(item.worldPrefab, dropPos, Quaternion.identity);
+            go.GetComponent<NetworkObject>()?.Spawn(true);
+        }
+
         var clientParams = new ClientRpcParams
             { Send = new ClientRpcSendParams { TargetClientIds = new[] { rpc.Receive.SenderClientId } } };
         ConfirmDropClientRpc(clientParams);

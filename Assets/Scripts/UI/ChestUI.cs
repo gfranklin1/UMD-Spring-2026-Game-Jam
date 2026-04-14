@@ -77,8 +77,12 @@ public class ChestUI : MonoBehaviour
 
         if (_depositAllButton != null)
             _depositAllButton.onClick.AddListener(OnDepositAllClicked);
+        else
+            Debug.LogWarning("ChestUI: _depositAllButton is not assigned.");
         if (_closeAndSellButton != null)
             _closeAndSellButton.onClick.AddListener(OnCloseAndSellClicked);
+        else
+            Debug.LogWarning("ChestUI: _closeAndSellButton is not assigned.");
     }
 
     private void OnDestroy()
@@ -151,6 +155,10 @@ public class ChestUI : MonoBehaviour
                       && Unity.Netcode.NetworkManager.Singleton.IsListening;
         if (networked)
         {
+            // Disable immediately to prevent double-click before RPC roundtrip completes
+            if (_playerSlotButtons != null && slotIndex < _playerSlotButtons.Length)
+                _playerSlotButtons[slotIndex].interactable = false;
+
             _chest.DepositOneServerRpc(new FixedString64Bytes(item.name));
             _pendingDepositSlot = slotIndex;
         }

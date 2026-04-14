@@ -46,7 +46,7 @@ public class PlayerCamera : MonoBehaviour
             return;
         }
 
-        bool chestOpen = _playerController != null && _playerController.CurrentOpenChest != null;
+        bool chestOpen = _playerController != null && (_playerController.CurrentOpenChest != null || _playerController.OpenUI);
 
         // Sync cursor state to chest UI state
         if (chestOpen && _cursorLocked)

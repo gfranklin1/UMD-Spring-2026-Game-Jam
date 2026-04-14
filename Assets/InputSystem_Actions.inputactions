@@ -43,6 +43,15 @@
                     "initialStateCheck": false
                 },
                 {
+                    "name": "Tug",
+                    "type": "Button",
+                    "id": "bd68c2b8-333e-4834-a8f5-3bc8f25b615e",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
                     "name": "Drop",
                     "type": "Button",
                     "id": "8c2c5f2b-5795-4b1d-83b7-94468396fdfe",
@@ -476,6 +485,17 @@
                     "processors": "",
                     "groups": "Gamepad",
                     "action": "Interact",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "45cca5db-f71a-43e9-9b2c-937bbca69e6d",
+                    "path": "<Keyboard>/f",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "Tug",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

@@ -1,4 +1,5 @@
 using UnityEngine;
+using Unity.Netcode.Components;
 
 /// <summary>
 /// Cosmetic wave-following for the ship. Samples OceanWaves at 4 hull points
@@ -35,7 +36,7 @@ public class ShipBuoyancy : MonoBehaviour
     private void Start()
     {
         if (oceanWaves == null)
-            oceanWaves = FindFirstObjectByType<OceanWaves>();
+            oceanWaves = FindAnyObjectByType<OceanWaves>();
         _shipMovement = GetComponent<ShipMovement>();
         _currentY = transform.position.y;
         _initialized = true;
@@ -59,9 +60,15 @@ public class ShipBuoyancy : MonoBehaviour
         // On non-authority clients, ShipMovement.Update() is skipped so CurrentYaw is frozen
         // at its spawn value. Use the transform's yaw directly — NetworkTransform has already
         // written the interpolated server yaw to the transform before this Update() runs.
-        bool isAuthority = Unity.Netcode.NetworkManager.Singleton == null
-                        || !Unity.Netcode.NetworkManager.Singleton.IsListening
-                        || (_shipMovement != null && _shipMovement.IsServer);
+        bool isNetworked = Unity.Netcode.NetworkManager.Singleton != null
+                && Unity.Netcode.NetworkManager.Singleton.IsListening;
+        bool hasNetworkTransform = GetComponent<NetworkTransform>() != null;
+
+        // If this ship has no NetworkTransform, each client must run buoyancy locally
+        // (merchant boat setup) or non-host clients will keep stale Y.
+        bool isAuthority = !isNetworked
+                || !hasNetworkTransform
+                || (_shipMovement != null && _shipMovement.IsServer);
         float yaw = (isAuthority && _shipMovement != null) ? _shipMovement.CurrentYaw : transform.eulerAngles.y;
         Quaternion yawRot = Quaternion.Euler(0, yaw, 0);
         Vector3 shipForward = yawRot * Vector3.forward;

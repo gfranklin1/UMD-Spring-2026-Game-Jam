@@ -11,6 +11,7 @@ public class PlayerHUD : NetworkBehaviour
     [SerializeField] private Text          _bootPromptText;    // "[Hold G] Kick off boots"
     [SerializeField] private RectTransform _bootKickFillRT;    // progress bar while holding G
     [SerializeField] private Text          _quotaDayText;      // top-left: "Day 2/3\nQuota: 150/500g"
+    [SerializeField] private Text          _tugIndicatorText;  // rope tug count indicator
 
     private PlayerController _player;
 
@@ -73,6 +74,24 @@ public class PlayerHUD : NetworkBehaviour
             var qm = QuotaManager.Instance;
             int gold = GoldTracker.Instance?.TotalGold ?? 0;
             _quotaDayText.text = $"Day {qm.CurrentDay}/{qm.DaysPerCycle}\nQuota: {gold}/{qm.CurrentQuotaTarget}g";
+        }
+
+        // Rope tug indicator
+        if (_tugIndicatorText != null)
+        {
+            if (_player.TugIndicatorActive)
+            {
+                float pulse = Mathf.Sin(Time.time * 10f) * 0.3f + 0.7f; // 0.4–1.0 alpha pulse
+                _tugIndicatorText.text = $"TUG x{_player.TugReceivedCount}";
+                Color c = _tugIndicatorText.color;
+                c.a = pulse;
+                _tugIndicatorText.color = c;
+                _tugIndicatorText.gameObject.SetActive(true);
+            }
+            else
+            {
+                _tugIndicatorText.gameObject.SetActive(false);
+            }
         }
     }
 }

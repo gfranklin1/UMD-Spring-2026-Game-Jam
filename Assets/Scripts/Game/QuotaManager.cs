@@ -4,6 +4,10 @@ using UnityEngine;
 /// <summary>
 /// Server-authoritative quota cycle manager. Tracks day/time progression,
 /// quota targets, and game-over state. Scene-placed singleton like GoldTracker.
+///
+/// Flow: end of cycle → summon merchant (players sell) → merchant departs →
+/// THEN check quota (advance cycle or game over). This gives players a chance
+/// to sell before the result is decided.
 /// </summary>
 public class QuotaManager : NetworkBehaviour
 {
@@ -19,15 +23,22 @@ public class QuotaManager : NetworkBehaviour
 
     // ── Networked state (server-write, everyone-read) ────────────────────────
 
-    // Seabed terrain seed — server picks once at session start; clients read it to generate identical terrain.
     public NetworkVariable<int> SeabedSeed = new(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
-    private NetworkVariable<int>   _currentCycle    = new(0,  NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
-    private NetworkVariable<int>   _currentDay      = new(1,  NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    private NetworkVariable<int>   _currentCycle    = new(0,    NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    private NetworkVariable<int>   _currentDay      = new(1,    NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     private NetworkVariable<float> _timeOfDay       = new(0.25f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     private NetworkVariable<bool>  _gameOver        = new(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
-    private NetworkVariable<int>   _totalGoldEarned = new(0,  NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
-    private NetworkVariable<int>   _gameOverReason  = new(0,  NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    private NetworkVariable<int>   _totalGoldEarned = new(0,    NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    private NetworkVariable<int>   _gameOverReason  = new(0,    NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+
+    // Incremented by server each time the merchant should be summoned.
+    // OnValueChanged fires on all clients so they all animate the summon.
+    private NetworkVariable<int> _merchantSummonCount = new(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+
+    // Incremented by server each time the merchant should be sent off.
+    // OnValueChanged fires on all clients so they all animate departure.
+    private NetworkVariable<int> _merchantSendOffCount = new(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
     // ── Public read-only accessors ───────────────────────────────────────────
 
@@ -38,6 +49,12 @@ public class QuotaManager : NetworkBehaviour
     public bool  IsGameOver        => _gameOver.Value;
     public int   TotalGoldEarned   => _totalGoldEarned.Value;
     public int   GameOverReason    => _gameOverReason.Value; // 0 = quota fail, 1 = death
+
+    // Pauses the day timer while the merchant is present
+    public bool _merchantOperating = false;
+
+    // Server-only: true after end-of-cycle merchant summon, cleared by ResumeCycle
+    private bool _pendingCycleEnd = false;
 
     public int CurrentQuotaTarget
     {
@@ -52,8 +69,10 @@ public class QuotaManager : NetworkBehaviour
     // ── Events ───────────────────────────────────────────────────────────────
 
     public event System.Action OnDayChanged;
-    public event System.Action OnCycleChanged;
-    public event System.Action OnCycleAdvanced;   // fires on quota met (cycle increments mid-game)
+    public event System.Action OnCycleChanged;       // fires when _currentCycle increments
+    public event System.Action OnCycleAdvanced;      // fires on quota met (revive dead players)
+    public event System.Action OnMerchantSummon;     // fires on all clients when merchant is summoned
+    public event System.Action OnMerchantSendOff;    // fires on all clients when merchant is sent off
     public event System.Action OnGameOverTriggered;
     public event System.Action OnGameReset;
 
@@ -62,6 +81,8 @@ public class QuotaManager : NetworkBehaviour
     private void Awake()
     {
         if (Instance == null) Instance = this;
+        var merchant = MerchantManager.Instance();
+        if (merchant != null) merchant.OnMerchantShipLeave += ResumeCycle;
     }
 
     public override void OnNetworkSpawn()
@@ -69,15 +90,22 @@ public class QuotaManager : NetworkBehaviour
         Instance = this;
         if (IsServer && SeabedSeed.Value == 0)
             SeabedSeed.Value = UnityEngine.Random.Range(1, int.MaxValue);
-        _currentDay.OnValueChanged   += (_, __) => OnDayChanged?.Invoke();
+
+        _currentDay.OnValueChanged += (_, __) => OnDayChanged?.Invoke();
+
         _currentCycle.OnValueChanged += (prev, next) =>
         {
             OnCycleChanged?.Invoke();
             if (next > prev) OnCycleAdvanced?.Invoke(); // quota met → revive dead players
         };
+
+        // Merchant summon is driven by this counter so all clients react simultaneously
+        _merchantSummonCount.OnValueChanged += (_, __) => OnMerchantSummon?.Invoke();
+        _merchantSendOffCount.OnValueChanged += (_, __) => OnMerchantSendOff?.Invoke();
+
         _gameOver.OnValueChanged += (prev, cur) =>
         {
-            if (cur)        OnGameOverTriggered?.Invoke();
+            if (cur)          OnGameOverTriggered?.Invoke();
             if (!cur && prev) OnGameReset?.Invoke();
         };
     }
@@ -91,7 +119,7 @@ public class QuotaManager : NetworkBehaviour
 
     private void Update()
     {
-        if (!IsServer || _gameOver.Value) return;
+        if (!IsServer || _gameOver.Value || _merchantOperating) return;
 
         _timeOfDay.Value += Time.deltaTime / dayDurationSeconds;
 
@@ -106,37 +134,93 @@ public class QuotaManager : NetworkBehaviour
         }
     }
 
+    // ── Merchant flow ─────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Called at end of cycle. Summons the merchant so players can sell,
+    /// then defers the quota check until the merchant departs.
+    /// </summary>
     private void EndOfCycleCheck()
+    {
+        if (MerchantManager.Instance() == null)
+        {
+            // No merchant ship in scene — skip the wait and finalize immediately
+            FinalizeEndOfCycle();
+            return;
+        }
+
+        _merchantOperating = true;
+        _pendingCycleEnd   = true;
+        _merchantSummonCount.Value++; // broadcasts OnMerchantSummon to all clients
+    }
+
+    /// <summary>
+    /// Called when the merchant ship departs (via MerchantManager.SignalMerchantLeave
+    /// → OnMerchantShipLeave event). Resumes time and, if this was an end-of-cycle
+    /// summon, checks quota.
+    /// </summary>
+    public void ResumeCycle()
+    {
+        _merchantOperating = false;
+
+        if (_pendingCycleEnd && IsServer)
+        {
+            _pendingCycleEnd = false;
+            FinalizeEndOfCycle();
+        }
+    }
+
+    /// <summary>
+    /// Broadcast merchant send-off to all clients.
+    /// Safe in offline mode (invokes event directly).
+    /// </summary>
+    public void TriggerMerchantSendOff()
+    {
+        bool networked = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+        if (!networked)
+        {
+            OnMerchantSendOff?.Invoke();
+            return;
+        }
+
+        if (!IsServer) return;
+        _merchantSendOffCount.Value++;
+    }
+
+    /// <summary>Server-only: check quota after the merchant has departed.</summary>
+    private void FinalizeEndOfCycle()
     {
         int gold = GoldTracker.Instance != null ? GoldTracker.Instance.TotalGold : 0;
 
         if (gold >= CurrentQuotaTarget)
         {
-            // Quota met — advance cycle
+            // Quota met — advance to the next cycle
             _totalGoldEarned.Value += gold;
             GoldTracker.Instance?.ResetGold();
             _currentCycle.Value++;
-            _currentDay.Value = 1;
-            _timeOfDay.Value = 0.25f;
+            _currentDay.Value  = 1;
+            _timeOfDay.Value   = 0.25f;
             RespawnLoot();
         }
         else
         {
             // Quota failed
             _totalGoldEarned.Value += gold;
-            _gameOverReason.Value = 0;
-            _gameOver.Value = true;
+            _gameOverReason.Value   = 0;
+            _gameOver.Value         = true;
         }
     }
 
-    /// <summary>Called from PlayerController when a player dies, or from EndOfCycleCheck.</summary>
+    // ── Death / external game-over ────────────────────────────────────────────
+
+    /// <summary>Called from PlayerController when a player dies.</summary>
     public void TriggerGameOver(int reason)
     {
         if (!IsServer || _gameOver.Value) return;
         int gold = GoldTracker.Instance != null ? GoldTracker.Instance.TotalGold : 0;
         _totalGoldEarned.Value += gold;
-        _gameOverReason.Value = reason;
-        _gameOver.Value = true;
+        _gameOverReason.Value   = reason;
+        _gameOver.Value         = true;
     }
 
     // ── Game Reset ───────────────────────────────────────────────────────────
@@ -145,12 +229,14 @@ public class QuotaManager : NetworkBehaviour
     public void ResetGame()
     {
         if (!IsServer || !_gameOver.Value) return;
+        _pendingCycleEnd       = false;
+        _merchantOperating     = false;
         _currentCycle.Value    = 0;
         _currentDay.Value      = 1;
         _timeOfDay.Value       = 0.25f;
         _totalGoldEarned.Value = 0;
         _gameOverReason.Value  = 0;
-        SeabedSeed.Value       = UnityEngine.Random.Range(1, int.MaxValue); // new world each restart
+        SeabedSeed.Value       = UnityEngine.Random.Range(1, int.MaxValue);
         GoldTracker.Instance?.ResetGold();
         RespawnLoot();
         ResetSuitRacks();
@@ -167,17 +253,7 @@ public class QuotaManager : NetworkBehaviour
 
     private void RespawnLoot()
     {
-        // Re-enable all in-scene LootPickup objects that were despawned by PickupLootServerRpc
-        var pickups = FindObjectsByType<LootPickup>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-        foreach (var loot in pickups)
-        {
-            if (!loot.gameObject.activeSelf)
-            {
-                loot.gameObject.SetActive(true);
-                var netObj = loot.GetComponent<NetworkObject>();
-                if (netObj != null && !netObj.IsSpawned)
-                    netObj.Spawn(true);
-            }
-        }
+        if (LootSpawner.Instance != null)
+            LootSpawner.Instance.ResetAllLoot();
     }
 }

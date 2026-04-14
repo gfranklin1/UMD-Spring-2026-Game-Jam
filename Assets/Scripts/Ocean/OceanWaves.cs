@@ -1,14 +1,17 @@
 using System;
+using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.Rendering;
 
 /// <summary>
-/// Low-poly flat-shaded ocean using Gerstner waves.
+/// Low-poly ocean with LOD clipmap rings and GPU Gerstner waves.
 ///
 /// Key features:
-///   • Non-indexed mesh  → each triangle owns its own vertices → flat / faceted look.
-///   • Vertex colour RED = foam amount; rises automatically as waveIntensity increases.
-///   • GetWaveHeight() / GetWaveSurfaceData() for ship buoyancy.
+///   • Concentric LOD rings — high detail near the ship, coarser at distance.
+///   • Non-indexed mesh with smooth per-vertex Gerstner normals.
+///   • Compute-shader Gerstner displacement + normals (CPU fallback if unassigned).
+///   • Vertex colour RED = foam; rises with waveIntensity.
+///   • GetWaveHeight() / GetWaveSurfaceData() for ship buoyancy (CPU, unchanged).
 /// </summary>
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
 public class OceanWaves : MonoBehaviour
@@ -35,11 +38,13 @@ public class OceanWaves : MonoBehaviour
     public Transform shipTransform;
 
     // ─────────────────────────────────────────────────────────────
-    [Header("Ocean Mesh")]
-    [Tooltip("Grid cells per side — 30-50 gives a good low-poly look")]
-    public int   gridSize = 40;
-    [Tooltip("World-unit size of each cell (larger = bigger ocean)")]
-    public float tileSize = 5f;
+    [Header("LOD Mesh")]
+    [Tooltip("Grid cells per side for the center (highest detail) patch")]
+    [SerializeField] private int centerResolution = 64;
+    [Tooltip("World-unit size of each cell in the center patch")]
+    [SerializeField] private float centerCellSize = 2f;
+    [Tooltip("Number of LOD ring levels beyond the center patch (each doubles tile size)")]
+    [SerializeField] private int ringCount = 4;
 
     // ─────────────────────────────────────────────────────────────
     [Header("Wave Intensity")]
@@ -60,28 +65,65 @@ public class OceanWaves : MonoBehaviour
     [Header("Wave Layers")]
     public WaveLayer[] waveLayers = new WaveLayer[]
     {
-        // Big rolling swell
         new WaveLayer { amplitude=0.70f, frequency=0.10f, speed=1.0f, steepness=0.55f, direction=  0f },
-        // Cross-wind chop
         new WaveLayer { amplitude=0.40f, frequency=0.18f, speed=1.5f, steepness=0.45f, direction= 50f },
-        // Mid ripple
         new WaveLayer { amplitude=0.22f, frequency=0.35f, speed=2.2f, steepness=0.30f, direction=-25f },
-        // Short surface chop
         new WaveLayer { amplitude=0.10f, frequency=0.65f, speed=2.9f, steepness=0.20f, direction=110f },
     };
 
     // ─────────────────────────────────────────────────────────────
+    [Header("Compute Shader")]
+    [Tooltip("Assign OceanCompute.compute — falls back to CPU if null")]
+    [SerializeField] private ComputeShader oceanCompute;
+
+    // ═════════════════════════════════════════════════════════════
+    #region GPU Structs
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct OceanVertex
+    {
+        public float px, py, pz;       // position
+        public float nx, ny, nz;       // normal
+        public float cr, cg, cb, ca;   // color (R = foam)
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct GPUWaveLayer
+    {
+        public float amplitude, frequency, speed, steepness, dirX, dirZ;
+    }
+
+    #endregion
+
+    // ═════════════════════════════════════════════════════════════
+    #region Private State
+
     private Mesh      _mesh;
-    private Vector3[] _vertices;   // displaced positions (written every frame)
-    private Vector2[] _restXZ;     // rest-space XZ, cached once, never modified
-    private Color[]   _colors;     // vertex colour: R=foam
-    private int       _vertCount;
+    private Vector2[] _restXZ;          // rest-space XZ for every vertex
+    private int       _totalVerts;
+    private int       _totalTris;
     private float     _maxAmplitude;
+    private float     _maxExtent;       // half-extent of outermost ring
+
+    // Compute path
+    private GraphicsBuffer _vertexBuffer;
+    private GraphicsBuffer _restXZBuffer;
+    private GraphicsBuffer _waveLayerBuffer;
+    private int            _kernelDisplace;
+    private int            _kernelNormals;
+    private bool           _useCompute;
+
+    // CPU fallback
+    private OceanVertex[] _cpuVerts;
+
+    #endregion
+
+    // ═════════════════════════════════════════════════════════════
+    #region SyncedTime
 
     /// <summary>
-    /// Network-synchronized time for wave computation.  All connected clients
-    /// agree on this value (via NGO's ServerTime clock-sync), so waves are at
-    /// the same phase everywhere.  Falls back to Time.time for offline / editor.
+    /// Network-synchronized time for wave computation.
+    /// Falls back to Time.time for offline / editor.
     /// </summary>
     private float SyncedTime
     {
@@ -94,13 +136,22 @@ public class OceanWaves : MonoBehaviour
         }
     }
 
+    #endregion
+
     // ═════════════════════════════════════════════════════════════
     #region Unity Lifecycle
 
     private void Awake()
     {
         RefreshMaxAmplitude();
-        BuildFlatMesh();
+        BuildRestPositions();
+        CreateMesh();
+
+        _useCompute = oceanCompute != null && SystemInfo.supportsComputeShaders;
+        if (_useCompute)
+            InitCompute();
+        else
+            _cpuVerts = new OceanVertex[_totalVerts];
 
         if (shipTransform == null)
         {
@@ -116,51 +167,25 @@ public class OceanWaves : MonoBehaviour
 
     private void Update()
     {
-        // Keep ocean grid centered on the ship so the mesh is always under the vessel
         if (shipTransform != null)
             transform.position = new Vector3(shipTransform.position.x, 0f, shipTransform.position.z);
 
         if (_mesh == null || _restXZ == null) return;
 
-        float time   = SyncedTime;
-        float maxAmp = _maxAmplitude * Mathf.Max(waveIntensity, 0.001f);
+        if (_useCompute)
+            DispatchCompute();
+        else
+            UpdateCPU();
+    }
 
-        for (int i = 0; i < _vertCount; i++)
-        {
-            float rx = _restXZ[i].x;
-            float rz = _restXZ[i].y;
-
-            // Accumulate Gerstner displacement
-            float dX = 0f, dY = 0f, dZ = 0f;
-            foreach (var w in waveLayers)
-            {
-                float rad  = w.direction * Mathf.Deg2Rad;
-                float dirX = Mathf.Cos(rad);
-                float dirZ = Mathf.Sin(rad);
-                float amp  = w.amplitude * waveIntensity;
-                float ph   = w.frequency * (dirX * rx + dirZ * rz) - w.speed * time;
-                float sinP = Mathf.Sin(ph);
-                float cosP = Mathf.Cos(ph);
-
-                dX += w.steepness * amp * dirX * cosP;
-                dZ += w.steepness * amp * dirZ * cosP;
-                dY += amp * sinP;
-            }
-
-            _vertices[i] = new Vector3(rx + dX, dY, rz + dZ);
-
-            // Foam: normalised height in [-1, 1] → [0, 1] above threshold
-            float normHeight = dY / maxAmp;                                       // -1 … 1
-            float foamRaw    = (normHeight - foamThreshold) / (1f - foamThreshold + 0.001f);
-            float foam       = Mathf.Pow(Mathf.Clamp01(foamRaw), 1f / foamFalloff);
-            foam            *= Mathf.Clamp01(waveIntensity * 0.55f);              // no foam when calm
-            _colors[i]       = new Color(foam, 0f, 0f, 1f);
-        }
-
-        _mesh.SetVertices(_vertices);
-        _mesh.SetColors(_colors);
-        _mesh.RecalculateNormals();    // flat shading: per-face because mesh is non-indexed
-        _mesh.RecalculateBounds();
+    private void OnDestroy()
+    {
+        _vertexBuffer?.Release();
+        _restXZBuffer?.Release();
+        _waveLayerBuffer?.Release();
+        _vertexBuffer    = null;
+        _restXZBuffer    = null;
+        _waveLayerBuffer = null;
     }
 
     #endregion
@@ -177,57 +202,283 @@ public class OceanWaves : MonoBehaviour
     }
 
     /// <summary>
-    /// Non-indexed mesh: every quad → 2 triangles → 6 unique vertices.
-    /// No shared vertices → RecalculateNormals gives each face one flat normal.
+    /// Computes rest XZ positions for center patch + ring levels.
+    /// Sets _restXZ, _totalVerts, _totalTris, _maxExtent.
     /// </summary>
-    private void BuildFlatMesh()
+    private void BuildRestPositions()
     {
-        _vertCount = gridSize * gridSize * 6;
-        _vertices  = new Vector3[_vertCount];
-        _restXZ    = new Vector2[_vertCount];
-        _colors    = new Color[_vertCount];
-        var uvs    = new Vector2[_vertCount];
-        var tris   = new int[_vertCount];
+        float centerHalf = centerResolution * centerCellSize * 0.5f;
 
-        float half = gridSize * tileSize * 0.5f;
-        int   vi   = 0;
-
-        for (int z = 0; z < gridSize; z++)
-        for (int x = 0; x < gridSize; x++)
+        // Count total vertices
+        _totalVerts = centerResolution * centerResolution * 6;
+        float innerHalf = centerHalf;
+        for (int ring = 0; ring < ringCount; ring++)
         {
-            float x0 = x       * tileSize - half;
-            float x1 = (x + 1) * tileSize - half;
-            float z0 = z       * tileSize - half;
-            float z1 = (z + 1) * tileSize - half;
+            float ts = centerCellSize * Mathf.Pow(2f, ring + 1);
+            float outerHalf = innerHalf * 2f;
+            _totalVerts += CountRingVerts(innerHalf, outerHalf, ts);
+            innerHalf = outerHalf;
+        }
+        _maxExtent = innerHalf;
+        _totalTris = _totalVerts / 3;
+
+        _restXZ = new Vector2[_totalVerts];
+        int vi = 0;
+
+        // LOD 0: center patch
+        vi = AddRegionQuads(-centerHalf, centerHalf, -centerHalf, centerHalf, centerCellSize, vi);
+
+        // LOD 1..N: concentric rings
+        innerHalf = centerHalf;
+        for (int ring = 0; ring < ringCount; ring++)
+        {
+            float ts = centerCellSize * Mathf.Pow(2f, ring + 1);
+            float outerHalf = innerHalf * 2f;
+
+            // Bottom strip: full width, below inner boundary
+            vi = AddRegionQuads(-outerHalf, outerHalf, -outerHalf, -innerHalf, ts, vi);
+            // Top strip: full width, above inner boundary
+            vi = AddRegionQuads(-outerHalf, outerHalf,  innerHalf,  outerHalf, ts, vi);
+            // Left strip: inner height only
+            vi = AddRegionQuads(-outerHalf, -innerHalf, -innerHalf, innerHalf, ts, vi);
+            // Right strip: inner height only
+            vi = AddRegionQuads( innerHalf,  outerHalf, -innerHalf, innerHalf, ts, vi);
+
+            innerHalf = outerHalf;
+        }
+    }
+
+    private int CountRingVerts(float innerHalf, float outerHalf, float ts)
+    {
+        int topBottom = 2 * CountRegionVerts(-outerHalf, outerHalf, -outerHalf, -innerHalf, ts);
+        int leftRight = 2 * CountRegionVerts(-outerHalf, -innerHalf, -innerHalf, innerHalf, ts);
+        return topBottom + leftRight;
+    }
+
+    private int CountRegionVerts(float xMin, float xMax, float zMin, float zMax, float ts)
+    {
+        int cellsX = Mathf.RoundToInt((xMax - xMin) / ts);
+        int cellsZ = Mathf.RoundToInt((zMax - zMin) / ts);
+        return cellsX * cellsZ * 6;
+    }
+
+    /// <summary>
+    /// Fills _restXZ for a rectangular grid region. Returns updated vertex index.
+    /// </summary>
+    private int AddRegionQuads(float xMin, float xMax, float zMin, float zMax, float ts, int vi)
+    {
+        int cellsX = Mathf.RoundToInt((xMax - xMin) / ts);
+        int cellsZ = Mathf.RoundToInt((zMax - zMin) / ts);
+
+        for (int z = 0; z < cellsZ; z++)
+        for (int x = 0; x < cellsX; x++)
+        {
+            float x0 = xMin + x * ts;
+            float x1 = x0 + ts;
+            float z0 = zMin + z * ts;
+            float z1 = z0 + ts;
 
             // Triangle A: BL, TL, TR
-            SetVert(vi,   x0, z0, (float)x/gridSize,       (float)z/gridSize,       uvs); tris[vi]   = vi++;
-            SetVert(vi,   x0, z1, (float)x/gridSize,       (float)(z+1)/gridSize,   uvs); tris[vi]   = vi++;
-            SetVert(vi,   x1, z1, (float)(x+1)/gridSize,   (float)(z+1)/gridSize,   uvs); tris[vi]   = vi++;
+            _restXZ[vi++] = new Vector2(x0, z0);
+            _restXZ[vi++] = new Vector2(x0, z1);
+            _restXZ[vi++] = new Vector2(x1, z1);
 
             // Triangle B: BL, TR, BR
-            SetVert(vi,   x0, z0, (float)x/gridSize,       (float)z/gridSize,       uvs); tris[vi]   = vi++;
-            SetVert(vi,   x1, z1, (float)(x+1)/gridSize,   (float)(z+1)/gridSize,   uvs); tris[vi]   = vi++;
-            SetVert(vi,   x1, z0, (float)(x+1)/gridSize,   (float)z/gridSize,       uvs); tris[vi]   = vi++;
+            _restXZ[vi++] = new Vector2(x0, z0);
+            _restXZ[vi++] = new Vector2(x1, z1);
+            _restXZ[vi++] = new Vector2(x1, z0);
         }
+        return vi;
+    }
 
-        _mesh = new Mesh { name = "OceanLowPoly", indexFormat = IndexFormat.UInt32 };
-        _mesh.SetVertices(_vertices);
-        _mesh.SetUVs(0, uvs);
-        _mesh.SetTriangles(tris, 0);
-        _mesh.SetColors(_colors);
-        _mesh.RecalculateNormals();
-        _mesh.RecalculateBounds();
+    /// <summary>
+    /// Creates the Mesh with a custom vertex layout (position + normal + color).
+    /// Uses SetVertexBufferParams so the buffer can be bound to compute shaders.
+    /// </summary>
+    private void CreateMesh()
+    {
+        _mesh = new Mesh();
+        _mesh.name = "OceanLOD";
+        _mesh.indexFormat = IndexFormat.UInt32;
+        _mesh.MarkDynamic();
+
+        // Enable raw access so compute shader can write via RWByteAddressBuffer
+        _mesh.vertexBufferTarget |= GraphicsBuffer.Target.Raw;
+
+        var layout = new[]
+        {
+            new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3),
+            new VertexAttributeDescriptor(VertexAttribute.Normal,   VertexAttributeFormat.Float32, 3),
+            new VertexAttributeDescriptor(VertexAttribute.Color,    VertexAttributeFormat.Float32, 4),
+        };
+        _mesh.SetVertexBufferParams(_totalVerts, layout);
+
+        // Upload initial vertex data (rest positions, normal up, black colour)
+        var initVerts = new OceanVertex[_totalVerts];
+        for (int i = 0; i < _totalVerts; i++)
+        {
+            initVerts[i].px = _restXZ[i].x;
+            initVerts[i].pz = _restXZ[i].y;
+            initVerts[i].ny = 1f;
+            initVerts[i].ca = 1f;
+        }
+        _mesh.SetVertexBufferData(initVerts, 0, 0, _totalVerts);
+
+        // Non-indexed: identity triangle list (tri[i] = i)
+        _mesh.SetIndexBufferParams(_totalVerts, IndexFormat.UInt32);
+        var indices = new int[_totalVerts];
+        for (int i = 0; i < _totalVerts; i++) indices[i] = i;
+        _mesh.SetIndexBufferData(indices, 0, 0, _totalVerts);
+
+        _mesh.SetSubMesh(0, new SubMeshDescriptor(0, _totalVerts, MeshTopology.Triangles),
+            MeshUpdateFlags.DontRecalculateBounds | MeshUpdateFlags.DontValidateIndices);
+
+        // Conservative bounds — never auto-recalculated (compute writes are GPU-side)
+        float maxH = _maxAmplitude * 5f + 10f;
+        _mesh.bounds = new Bounds(Vector3.zero, new Vector3(_maxExtent * 2f, maxH, _maxExtent * 2f));
 
         GetComponent<MeshFilter>().mesh = _mesh;
     }
 
-    private void SetVert(int i, float x, float z, float u, float v, Vector2[] uvs)
+    #endregion
+
+    // ═════════════════════════════════════════════════════════════
+    #region Compute Shader
+
+    private void InitCompute()
     {
-        _vertices[i] = new Vector3(x, 0f, z);
-        _restXZ[i]   = new Vector2(x, z);
-        uvs[i]       = new Vector2(u, v);
-        _colors[i]   = Color.black;
+        _kernelDisplace = oceanCompute.FindKernel("DisplaceVertices");
+        _kernelNormals  = oceanCompute.FindKernel("ComputeSmoothNormals");
+
+        // Vertex buffer from the mesh — writable by compute
+        _vertexBuffer = _mesh.GetVertexBuffer(0);
+
+        // Rest positions (read-only on GPU)
+        _restXZBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, _totalVerts, sizeof(float) * 2);
+        _restXZBuffer.SetData(_restXZ);
+
+        // Wave layer buffer (updated each frame)
+        int maxLayers = Mathf.Max(waveLayers.Length, 1);
+        _waveLayerBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, maxLayers, sizeof(float) * 6);
+    }
+
+    private void DispatchCompute()
+    {
+        // Upload wave layer data (pre-compute direction vectors)
+        var gpuLayers = new GPUWaveLayer[waveLayers.Length];
+        for (int i = 0; i < waveLayers.Length; i++)
+        {
+            float rad = waveLayers[i].direction * Mathf.Deg2Rad;
+            gpuLayers[i] = new GPUWaveLayer
+            {
+                amplitude = waveLayers[i].amplitude,
+                frequency = waveLayers[i].frequency,
+                speed     = waveLayers[i].speed,
+                steepness = waveLayers[i].steepness,
+                dirX      = Mathf.Cos(rad),
+                dirZ      = Mathf.Sin(rad),
+            };
+        }
+        // Resize buffer if wave layer count changed
+        if (_waveLayerBuffer.count < waveLayers.Length)
+        {
+            _waveLayerBuffer.Release();
+            _waveLayerBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, waveLayers.Length, sizeof(float) * 6);
+        }
+        _waveLayerBuffer.SetData(gpuLayers);
+
+        // ── Kernel 1: Displace ──────────────────────────────────
+        oceanCompute.SetBuffer(_kernelDisplace, "_VertexBuffer",  _vertexBuffer);
+        oceanCompute.SetBuffer(_kernelDisplace, "_RestXZ",        _restXZBuffer);
+        oceanCompute.SetBuffer(_kernelDisplace, "_WaveLayers",    _waveLayerBuffer);
+        oceanCompute.SetInt("_VertexCount",     _totalVerts);
+        oceanCompute.SetInt("_WaveLayerCount",  waveLayers.Length);
+        oceanCompute.SetFloat("_SyncedTime",    SyncedTime);
+        oceanCompute.SetFloat("_WaveIntensity", waveIntensity);
+        oceanCompute.SetFloat("_FoamThreshold", foamThreshold);
+        oceanCompute.SetFloat("_FoamFalloff",   foamFalloff);
+        oceanCompute.SetFloat("_MaxAmplitude",  _maxAmplitude);
+
+        int groupsVert = (_totalVerts + 255) / 256;
+        oceanCompute.Dispatch(_kernelDisplace, groupsVert, 1, 1);
+
+        // ── Kernel 2: Smooth normals ────────────────────────────
+        oceanCompute.SetBuffer(_kernelNormals, "_VertexBuffer", _vertexBuffer);
+        oceanCompute.SetBuffer(_kernelNormals, "_RestXZ", _restXZBuffer);
+        oceanCompute.SetBuffer(_kernelNormals, "_WaveLayers", _waveLayerBuffer);
+        oceanCompute.SetInt("_TriangleCount", _totalTris);
+        oceanCompute.SetInt("_VertexCount", _totalVerts);
+        oceanCompute.SetInt("_WaveLayerCount", waveLayers.Length);
+        oceanCompute.SetFloat("_SyncedTime", SyncedTime);
+        oceanCompute.SetFloat("_WaveIntensity", waveIntensity);
+
+        int groupsNormal = (_totalVerts + 255) / 256;
+        oceanCompute.Dispatch(_kernelNormals, groupsNormal, 1, 1);
+    }
+
+    #endregion
+
+    // ═════════════════════════════════════════════════════════════
+    #region CPU Fallback
+
+    private void UpdateCPU()
+    {
+        float time   = SyncedTime;
+        float maxAmp = _maxAmplitude * Mathf.Max(waveIntensity, 0.001f);
+
+        // Gerstner displacement
+        for (int i = 0; i < _totalVerts; i++)
+        {
+            float rx = _restXZ[i].x;
+            float rz = _restXZ[i].y;
+
+            float dX = 0f, dY = 0f, dZ = 0f;
+            foreach (var w in waveLayers)
+            {
+                float rad  = w.direction * Mathf.Deg2Rad;
+                float dirX = Mathf.Cos(rad);
+                float dirZ = Mathf.Sin(rad);
+                float amp  = w.amplitude * waveIntensity;
+                float ph   = w.frequency * (dirX * rx + dirZ * rz) - w.speed * time;
+                float sinP = Mathf.Sin(ph);
+                float cosP = Mathf.Cos(ph);
+
+                dX += w.steepness * amp * dirX * cosP;
+                dZ += w.steepness * amp * dirZ * cosP;
+                dY += amp * sinP;
+            }
+
+            _cpuVerts[i].px = rx + dX;
+            _cpuVerts[i].py = dY;
+            _cpuVerts[i].pz = rz + dZ;
+
+            float normHeight = dY / maxAmp;
+            float foamRaw    = (normHeight - foamThreshold) / (1f - foamThreshold + 0.001f);
+            float foam       = Mathf.Pow(Mathf.Clamp01(foamRaw), 1f / foamFalloff);
+            foam            *= Mathf.Clamp01(waveIntensity * 0.55f);
+
+            _cpuVerts[i].cr = foam;
+            _cpuVerts[i].cg = 0f;
+            _cpuVerts[i].cb = 0f;
+            _cpuVerts[i].ca = 1f;
+        }
+
+        // Smooth Gerstner normals (per-vertex)
+        for (int i = 0; i < _totalVerts; i++)
+        {
+            Vector3 normal;
+            EvaluateGerstnerSurface(_restXZ[i].x, _restXZ[i].y, time, out float x, out float y, out float z, out normal);
+
+            _cpuVerts[i].px = x;
+            _cpuVerts[i].py = y;
+            _cpuVerts[i].pz = z;
+            _cpuVerts[i].nx = normal.x;
+            _cpuVerts[i].ny = normal.y;
+            _cpuVerts[i].nz = normal.z;
+        }
+
+        _mesh.SetVertexBufferData(_cpuVerts, 0, 0, _totalVerts,
+            0, MeshUpdateFlags.DontRecalculateBounds);
     }
 
     #endregion
@@ -236,12 +487,51 @@ public class OceanWaves : MonoBehaviour
     #region Gerstner Math
 
     /// <summary>
+    /// Evaluates displaced Gerstner position and smooth surface normal at a rest-space sample.
+    /// </summary>
+    private void EvaluateGerstnerSurface(float rx, float rz, float time, out float px, out float py, out float pz, out Vector3 normal)
+    {
+        float dX = 0f, dY = 0f, dZ = 0f;
+        Vector3 tangentX = new Vector3(1f, 0f, 0f);
+        Vector3 tangentZ = new Vector3(0f, 0f, 1f);
+
+        foreach (var w in waveLayers)
+        {
+            float rad  = w.direction * Mathf.Deg2Rad;
+            float dirX = Mathf.Cos(rad);
+            float dirZ = Mathf.Sin(rad);
+            float amp  = w.amplitude * waveIntensity;
+            float ph   = w.frequency * (dirX * rx + dirZ * rz) - w.speed * time;
+            float sinP = Mathf.Sin(ph);
+            float cosP = Mathf.Cos(ph);
+            float qkA  = w.steepness * amp * w.frequency;
+            float kA   = amp * w.frequency;
+
+            dX += w.steepness * amp * dirX * cosP;
+            dZ += w.steepness * amp * dirZ * cosP;
+            dY += amp * sinP;
+
+            tangentX.x -= qkA * dirX * dirX * sinP;
+            tangentX.y += kA * dirX * cosP;
+            tangentX.z -= qkA * dirX * dirZ * sinP;
+
+            tangentZ.x -= qkA * dirX * dirZ * sinP;
+            tangentZ.y += kA * dirZ * cosP;
+            tangentZ.z -= qkA * dirZ * dirZ * sinP;
+        }
+
+        normal = Vector3.Cross(tangentZ, tangentX).normalized;
+        px = rx + dX;
+        py = dY;
+        pz = rz + dZ;
+    }
+
+    /// <summary>
     /// Evaluates Gerstner wave height at local-space rest-position (rx, rz).
     /// Iterates to cancel the horizontal displacement error.
     /// </summary>
     private float GerstnerHeightAt(float rx, float rz, float time)
     {
-        // Iteratively refine rest-pos to compensate Gerstner XZ shift
         const int iters = 5;
         for (int it = 0; it < iters; it++)
         {
@@ -256,10 +546,7 @@ public class OceanWaves : MonoBehaviour
                 cx += w.steepness * amp * dirX * cosP;
                 cz += w.steepness * amp * dirZ * cosP;
             }
-            // Adjust rest pos (not the query pos) by subtracting displacement
-            // We want: restPos + displacement = queryPos
-            // So:       restPos = queryPos - displacement (at current restPos estimate)
-            rx -= cx * 0.5f;   // half-step for stability
+            rx -= cx * 0.5f;
             rz -= cz * 0.5f;
         }
 

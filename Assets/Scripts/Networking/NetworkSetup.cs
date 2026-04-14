@@ -17,6 +17,7 @@ public class NetworkSetup : MonoBehaviour
 {
     [SerializeField] private string defaultAddress = "127.0.0.1";
     [SerializeField] private ushort port = 7777;
+    private bool _startAttemptInProgress;
 
     private void Start()
     {
@@ -46,25 +47,57 @@ public class NetworkSetup : MonoBehaviour
     /// <summary>Start as host (runs both server and local client).</summary>
     public void StartHost()
     {
+        if (_startAttemptInProgress) return;
+        if (NetworkManager.Singleton == null) return;
+        if (NetworkManager.Singleton.IsListening) return;
+
+        _startAttemptInProgress = true;
+
+        // If a stale transport/driver is still alive in this editor process, clear it first.
+        NetworkManager.Singleton.Shutdown();
         SetTransport(defaultAddress, port);
-        NetworkManager.Singleton.StartHost();
-        Debug.Log($"[NetworkSetup] Hosting on :{port}");
+        bool ok = NetworkManager.Singleton.StartHost();
+        _startAttemptInProgress = false;
+
+        if (ok) Debug.Log($"[NetworkSetup] Hosting on :{port}");
+        else    Debug.LogError($"[NetworkSetup] Failed to host on :{port}");
     }
 
     /// <summary>Connect to a host at the given IP address.</summary>
     public void StartClient(string address)
     {
+        if (_startAttemptInProgress) return;
+        if (NetworkManager.Singleton == null) return;
+        if (NetworkManager.Singleton.IsListening) return;
+
+        _startAttemptInProgress = true;
+
+        // If a stale transport/driver is still alive in this editor process, clear it first.
+        NetworkManager.Singleton.Shutdown();
         SetTransport(address, port);
-        NetworkManager.Singleton.StartClient();
-        Debug.Log($"[NetworkSetup] Connecting to {address}:{port}");
+        bool ok = NetworkManager.Singleton.StartClient();
+        _startAttemptInProgress = false;
+
+        if (ok) Debug.Log($"[NetworkSetup] Connecting to {address}:{port}");
+        else    Debug.LogError($"[NetworkSetup] Failed to start client for {address}:{port}");
     }
 
     /// <summary>Start as a dedicated server (no local player).</summary>
     public void StartServer()
     {
+        if (_startAttemptInProgress) return;
+        if (NetworkManager.Singleton == null) return;
+        if (NetworkManager.Singleton.IsListening) return;
+
+        _startAttemptInProgress = true;
+
+        NetworkManager.Singleton.Shutdown();
         SetTransport(defaultAddress, port);
-        NetworkManager.Singleton.StartServer();
-        Debug.Log($"[NetworkSetup] Server listening on :{port}");
+        bool ok = NetworkManager.Singleton.StartServer();
+        _startAttemptInProgress = false;
+
+        if (ok) Debug.Log($"[NetworkSetup] Server listening on :{port}");
+        else    Debug.LogError($"[NetworkSetup] Failed to start server on :{port}");
     }
 
     private void SetTransport(string address, ushort p)

@@ -67,7 +67,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: fd4f606a2af6f8d43978a1ab4076e323, type: 2}
+  - {fileID: 2100000, guid: 35cc7dacdf9505341b5136b072498d48, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -103,29 +103,32 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5faa456892be99e408cf2fafd7e3878c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OceanWaves
-  gridSize: 40
-  tileSize: 5
-  waveIntensity: 2.07
-  foamThreshold: 0.55
+  shipTransform: {fileID: 0}
+  centerResolution: 256
+  centerCellSize: 2
+  ringCount: 4
+  waveIntensity: 3.75
+  foamThreshold: 0.324
   foamFalloff: 2
   waveLayers:
-  - amplitude: 0.7
-    frequency: 0.1
+  - amplitude: 0.09
+    frequency: 1.44
     speed: 1
     steepness: 0.55
-    direction: 0
+    direction: -20
   - amplitude: 0.4
-    frequency: 0.18
+    frequency: 0.21
     speed: 1.5
     steepness: 0.45
-    direction: 50
-  - amplitude: 0.22
-    frequency: 0.35
+    direction: 14
+  - amplitude: 0.04
+    frequency: 1.06
     speed: 2.2
     steepness: 0.3
     direction: -25
-  - amplitude: 0.1
-    frequency: 0.65
+  - amplitude: 0.22
+    frequency: 0.37
     speed: 2.9
     steepness: 0.2
     direction: 110
+  oceanCompute: {fileID: 7200000, guid: 28b2253398c459842bfba80af245f833, type: 3}

@@ -24,7 +24,7 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Register the client-disconnect callback each time SampleScene starts networking.
+    /// Register the client-disconnect callback each time gameplay networking starts.
     /// Called by NetworkSetup after StartHost/StartClient.
     /// </summary>
     public void RegisterNetworkCallbacks()

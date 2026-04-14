@@ -70,7 +70,7 @@ public class UnderwaterEffect : MonoBehaviour
 
     private void Start()
     {
-        _oceanWaves = FindFirstObjectByType<OceanWaves>();
+        _oceanWaves = FindAnyObjectByType<OceanWaves>();
     }
 
     private void Update()

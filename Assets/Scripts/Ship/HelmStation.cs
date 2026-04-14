@@ -35,7 +35,7 @@ public class HelmStation : MonoBehaviour, IInteractable
         {
             bool networked = Unity.Netcode.NetworkManager.Singleton != null
                           && Unity.Netcode.NetworkManager.Singleton.IsListening;
-            if (networked) shipMovement.SetHelmOccupiedServerRpc(true);
+            if (networked && shipMovement.IsSpawned) shipMovement.SetHelmOccupiedServerRpc(true);
             else           shipMovement.SetHelmOccupiedLocal(true);
         }
     }
@@ -53,7 +53,7 @@ public class HelmStation : MonoBehaviour, IInteractable
         {
             bool networked = Unity.Netcode.NetworkManager.Singleton != null
                           && Unity.Netcode.NetworkManager.Singleton.IsListening;
-            if (networked)
+            if (networked && shipMovement.IsSpawned)
             {
                 shipMovement.SetSteeringInputServerRpc(0f);
                 shipMovement.SetHelmOccupiedServerRpc(false);
@@ -83,7 +83,7 @@ public class HelmStation : MonoBehaviour, IInteractable
             _lastSentSteering = steering;
             bool networked = Unity.Netcode.NetworkManager.Singleton != null
                           && Unity.Netcode.NetworkManager.Singleton.IsListening;
-            if (networked) shipMovement.SetSteeringInputServerRpc(steering);
+            if (networked && shipMovement.IsSpawned) shipMovement.SetSteeringInputServerRpc(steering);
             else           shipMovement.SetSteeringInputLocal(steering);
         }
     }

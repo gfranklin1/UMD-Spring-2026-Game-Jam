@@ -39,6 +39,10 @@ public class SeabedManager : MonoBehaviour
 {
     public static SeabedManager Instance { get; private set; }
 
+    public event System.Action<DiveSite> OnSiteDiscovered;
+    public bool IsGenerated => _generated;
+    public Transform ShipTransform => shipTransform;
+
     // ── Chunk settings ──────────────────────────────────────────────
     [Header("Chunks")]
     [Tooltip("Quads per side per chunk")]
@@ -95,7 +99,7 @@ public class SeabedManager : MonoBehaviour
     // ── Dive sites ──────────────────────────────────────────────────
     [Header("Dive Sites")]
     [Tooltip("Approx metres between sites")]
-    [SerializeField] private float nominalSiteSpacing = 500f;
+    [SerializeField] private float nominalSiteSpacing = 400f;
     [Tooltip("Number of loot points generated per site")]
     [SerializeField] private int   lootPointsPerSite  = 6;
     [Tooltip("XZ radius around site centre")]
@@ -443,6 +447,7 @@ public class SeabedManager : MonoBehaviour
 
         _knownSites[cell] = site;
         _allSites.Add(site);
+        OnSiteDiscovered?.Invoke(site);
     }
 
     private SeabedLootPoint[] GenerateLootPoints(float cx, float cz, SysRandom rng, int siteIdx)
@@ -553,7 +558,7 @@ public class SeabedManager : MonoBehaviour
     }
 
     /// <summary>Deterministic integer hash of a seed + 2D cell coordinate.</summary>
-    private static int CellHash(int s, int x, int z)
+    internal static int CellHash(int s, int x, int z)
     {
         unchecked
         {

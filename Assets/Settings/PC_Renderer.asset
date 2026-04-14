@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 90e1fb53064d1b4469ed70e961f907c9, type: 3}
   m_Name: UnderwaterFogFeature
   m_EditorClassIdentifier: Assembly-CSharp::UnderwaterFogFeature
-  m_Active: 1
+  m_Active: 0
   fogMaterial: {fileID: 2100000, guid: 8b752a37a02379d48b19d259123f8af2, type: 2}
 --- !u!114 &11400000
 MonoBehaviour:
